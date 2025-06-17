@@ -17,8 +17,7 @@
 ## Tech stack
 - Typescript
 - Tailwind
-- Vite
-- Node.js
+- Next.js
 - Phaser
 
 ## TODOs
