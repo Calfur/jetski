@@ -16,14 +16,14 @@
 - Typescript
 - Vite
 - Node.js
-- Three.js
+- Phaser
 
 ## TODOs
 - [ ] Create hello world app
 - [ ] Create 2 sub pages (game view & game controller)
 - [ ] Add links to sub pages
 - [ ] Setup GitHub Action which creates dockerimage & triggers deployment on calfur-dev
-- [ ] Setup basic game view with Three.js (water area, camera, lighting)
+- [ ] Setup basic game view with Phaser (water area, camera, lighting)
 - [ ] Multiplayer ability, joining with devices as game controllers adds player names to game view
 - [ ] Add player jetski model (colored rectangle with name tag)
 - [ ] Implement basic player movement (left/right controls)
