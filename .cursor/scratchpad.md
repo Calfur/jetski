@@ -1,9 +1,11 @@
 # Development Scratchpad
 
 ## Requirements
-- Shared multi player game view (2d 16:9 fixed size water area), stored server side in memory, displayed on jetski.calfur.dev/view
+- Shared multi player game view (2d horizontal 16:9 fixed size water area), stored server side in memory, displayed on jetski.calfur.dev/view
+- This view will be displayed with a beamer and be view only
 - Ability to enter player name and join onto the game view (as colored rectangle (jetski) with player name tag above)
-- Game controller view (2 buttons for left and right jetski motor in the colors of the players jetski), displayed on jetski.calfur.dev/controller
+- This view will be used by players on their phone.
+- Game controller view (2 big buttons which each fill half of the screen for left and right jetski motor in the colors of the players jetski), displayed on jetski.calfur.dev/controller
 - Things to collect to get points on collision, which respawn randomly, limited total amount
 - Scoreboard on view page
 - Jetski physics (drifting, hard to stop moving)
@@ -14,6 +16,7 @@
 
 ## Tech stack
 - Typescript
+- Tailwind
 - Vite
 - Node.js
 - Phaser
