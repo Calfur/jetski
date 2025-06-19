@@ -4,6 +4,8 @@ FROM base AS deps
 
 RUN apk add --no-cache libc6-compat
 
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
 WORKDIR /app
 
 COPY App/package.json ./
@@ -13,6 +15,9 @@ RUN npm ci
 
 # Build stage
 FROM base AS builder
+
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
