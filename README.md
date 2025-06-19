@@ -18,6 +18,9 @@ Vibe Code Challenge For All - Online.ch Palermo
 > 17.06.2025 0.5h
 > Create hello world app
 
+> 19.06.2025 2h
+> Create dockerfle & GitHub Action (manually)
+
 ## My rules
 
 - Game must be at least 80% written by AI (code, assets, etc)
