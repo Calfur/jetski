@@ -23,7 +23,7 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./dockerfile
@@ -34,6 +34,8 @@ jobs:
           build-args: |
             VERSION=alpine
           platforms: linux/amd64,linux/arm64
+          cache-from: type=registry,ref=ghcr.io/calfur/jetski:buildcache
+          cache-to: type=registry,ref=ghcr.io/calfur/jetski:buildcache,mode=max
 
   trigger-deployment:
     needs: build-docker-image
