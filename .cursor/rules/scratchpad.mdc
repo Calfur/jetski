@@ -6,6 +6,6 @@ alwaysApply: true
 [scratchpad.md](mdc:.cursor/scratchpad.md) contains:
 - the projects tech stack
 - all basic requirements
-- the projects current status
+- the projects current status & ToDo list
 
 Use this to clarify questions and make decisions. But only implement what the user currently asked for, as we are implementing this step by step.

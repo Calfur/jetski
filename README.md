@@ -21,6 +21,9 @@ Vibe Code Challenge For All - Online.ch Palermo
 > 19.06.2025 2h
 > Create dockerfle & GitHub Action (manually)
 
+> 22.06.2025 1h
+> Create linked sub pages
+
 ## My rules
 
 - Game must be at least 80% written by AI (code, assets, etc)
