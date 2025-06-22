@@ -6,6 +6,18 @@
 - Ability to enter player name and join onto the game view (as colored rectangle (jetski) with player name tag above)
 - This view will be used by players on their phone.
 - Game controller view (2 big buttons which each fill half of the screen for left and right jetski motor in the colors of the players jetski), displayed on jetski.calfur.dev/controller
+- Responsive landing page
+  - Title "Jetski"
+  - Subtitle "Vibe Code Challenge For All - Online.ch Palermo"
+  - with links (displayed as big cards) to the other two pages:
+    - "Game view"
+      - Subtitle "View only"
+      - Beamer / Screen icon
+      - Description "Open this on a big screen to display the map"
+    - "Controller view"
+      - Subtitle "Input only"
+      - Phone / Gamepad icon
+      - Description "Use this on your phone to control your jetski"
 - Things to collect to get points on collision, which respawn randomly, limited total amount
 - Scoreboard on view page
 - Jetski physics (drifting, hard to stop moving)
