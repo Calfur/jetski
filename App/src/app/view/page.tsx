@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 function WaterGame() {
   const containerRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<HTMLDivElement>(null);
-  const phaserGameRef = useRef<any>(null);
+  const phaserGameRef = useRef<import("phaser").Game | null>(null);
 
   // Calculate the largest 16:9 size that fits in the viewport
   function getMax16by9Size() {
@@ -21,7 +21,7 @@ function WaterGame() {
   }
 
   useEffect(() => {
-    let gameInstance: any = null;
+    let gameInstance: import("phaser").Game | null = null;
     let isMounted = true;
     let resizeHandler: (() => void) | null = null;
     (async () => {
@@ -66,7 +66,6 @@ function WaterGame() {
         window.removeEventListener('resize', resizeHandler);
       }
     };
-    // eslint-disable-next-line
   }, []);
 
   // The outer container fills the viewport and centers the 16:9 game area
