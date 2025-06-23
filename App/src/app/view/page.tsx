@@ -30,8 +30,11 @@ function WaterGame() {
   }
 
   useEffect(() => {
-    // Connect to WebSocket server
-    const ws = new WebSocket('ws://localhost:3000/ws');
+    // Connect to WebSocket server - use dynamic URL for production
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    const wsUrl = `${protocol}//${host}/ws`;
+    const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
