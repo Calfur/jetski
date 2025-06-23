@@ -22,7 +22,10 @@ Vibe Code Challenge For All - Online.ch Palermo
 > Create dockerfle & GitHub Action (manually)
 
 > 22.06.2025 1h
-> Create linked sub pages
+> Create linked sub pages & landing page
+
+> 23.06.2025 20:30-
+> 
 
 ## My rules
 

@@ -1,7 +1,7 @@
 # Development Scratchpad
 
 ## Requirements
-- Shared multi player game view (2d horizontal 16:9 fixed size water area), stored server side in memory, displayed on jetski.calfur.dev/view
+- Shared multi player game view (2d horizontal 16:9 fixed size water area, responsive, as big as fits on the screen with dark surroundings), stored server side in memory, displayed on jetski.calfur.dev/view
 - This view will be displayed with a beamer and be view only
 - Ability to enter player name and join onto the game view (as colored rectangle (jetski) with player name tag above)
 - This view will be used by players on their phone.
