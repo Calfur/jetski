@@ -1,24 +1,43 @@
-const { createServer } = require('http');
-const { parse } = require('url');
-const next = require('next');
-const { WebSocketServer } = require('ws');
-const { v4: uuidv4 } = require('uuid');
+import { createServer } from 'http';
+import { parse } from 'url';
+import next from 'next';
+import { WebSocketServer, WebSocket } from 'ws';
+import { v4 as uuidv4 } from 'uuid';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = process.env.HOSTNAME || 'localhost';
-const port = process.env.PORT || 3000;
+const port = parseInt(process.env.PORT || '3000', 10);
 
 // Prepare the Next.js app
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
+// Player type
+type Player = {
+  id: string;
+  name: string;
+  lastActive: number;
+};
+
+// WebSocket message types
+type WebSocketMessage = {
+  type: 'join' | 'heartbeat';
+  name?: string;
+};
+
+type WebSocketResponse = {
+  type: 'playerList' | 'error';
+  players?: string[];
+  error?: string;
+};
+
 // Player management
-const players = [];
+const players: Player[] = [];
 
 app.prepare().then(() => {
   const server = createServer(async (req, res) => {
     try {
-      const parsedUrl = parse(req.url, true);
+      const parsedUrl = parse(req.url!, true);
       await handle(req, res, parsedUrl);
     } catch (err) {
       console.error('Error occurred handling', req.url, err);
@@ -33,17 +52,17 @@ app.prepare().then(() => {
     path: '/ws' // Add a specific path for WebSocket connections
   });
 
-  function broadcastPlayerList() {
+  function broadcastPlayerList(): void {
     const names = players.map((p) => p.name);
-    const msg = JSON.stringify({ type: 'playerList', players: names });
+    const msg: WebSocketResponse = { type: 'playerList', players: names };
     wss.clients.forEach((client) => {
-      if (client.readyState === 1) { // WebSocket.OPEN
-        client.send(msg);
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(msg));
       }
     });
   }
 
-  function removeInactivePlayers() {
+  function removeInactivePlayers(): void {
     const now = Date.now();
     let changed = false;
     for (let i = players.length - 1; i >= 0; i--) {
@@ -56,13 +75,13 @@ app.prepare().then(() => {
   }
 
   // Set up WebSocket connection handling
-  wss.on('connection', (ws, req) => {
+  wss.on('connection', (ws: WebSocket) => {
     console.log('WebSocket client connected');
-    let playerId = null;
+    let playerId: string | null = null;
 
-    ws.on('message', (data) => {
+    ws.on('message', (data: WebSocket.RawData) => {
       try {
-        const msg = JSON.parse(data.toString());
+        const msg: WebSocketMessage = JSON.parse(data.toString());
         if (msg.type === 'join') {
           const { name } = msg;
           if (
@@ -70,7 +89,11 @@ app.prepare().then(() => {
             !name.trim() ||
             players.some((p) => p.name.toLowerCase() === name.toLowerCase())
           ) {
-            ws.send(JSON.stringify({ type: 'error', error: 'Name taken or invalid' }));
+            const errorResponse: WebSocketResponse = { 
+              type: 'error', 
+              error: 'Name taken or invalid' 
+            };
+            ws.send(JSON.stringify(errorResponse));
             return;
           }
           playerId = uuidv4();
@@ -85,7 +108,11 @@ app.prepare().then(() => {
         }
       } catch (err) {
         console.error('WebSocket message error:', err);
-        ws.send(JSON.stringify({ type: 'error', error: 'Invalid message' }));
+        const errorResponse: WebSocketResponse = { 
+          type: 'error', 
+          error: 'Invalid message' 
+        };
+        ws.send(JSON.stringify(errorResponse));
       }
     });
 
@@ -102,12 +129,16 @@ app.prepare().then(() => {
       }
     });
 
-    ws.on('error', (error) => {
+    ws.on('error', (error: Error) => {
       console.error('WebSocket error:', error);
     });
 
     // Send initial player list
-    ws.send(JSON.stringify({ type: 'playerList', players: players.map((p) => p.name) }));
+    const initialResponse: WebSocketResponse = { 
+      type: 'playerList', 
+      players: players.map((p) => p.name) 
+    };
+    ws.send(JSON.stringify(initialResponse));
   });
 
   // Start inactivity cleanup
