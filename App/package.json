@@ -3,11 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "FAST_REFRESH=false node server.js",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "ws-server": "ts-node src/app/ws-server.ts"
+    "start": "node server.js",
+    "lint": "next lint"
   },
   "dependencies": {
     "@types/uuid": "^10.0.0",
