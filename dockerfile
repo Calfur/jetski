@@ -23,6 +23,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY App/ .
 
+# Build both Next.js app and TypeScript server
 RUN npm run build
 
 # Production stage
@@ -38,6 +39,9 @@ COPY --from=builder /app/public ./public
 
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Overwrite the Next.js server.js with our custom server that includes WebSocket support
+COPY --from=builder --chown=nextjs:nodejs /app/dist/server.js ./server.js
 
 USER nextjs
 

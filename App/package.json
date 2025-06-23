@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "FAST_REFRESH=false ts-node server.ts",
-    "build": "next build",
-    "start": "ts-node server.ts",
+    "build": "next build && npm run build:server",
+    "build:server": "tsc --project tsconfig.server.json",
+    "start": "node dist/server.js",
     "lint": "next lint"
   },
   "dependencies": {

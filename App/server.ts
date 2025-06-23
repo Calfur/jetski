@@ -1,7 +1,7 @@
 import { createServer } from 'http';
 import { parse } from 'url';
 import next from 'next';
-import { WebSocketServer, WebSocket } from 'ws';
+import { WebSocketServer, WebSocket, RawData } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 
 const dev = process.env.NODE_ENV !== 'production';
@@ -79,7 +79,7 @@ app.prepare().then(() => {
     console.log('WebSocket client connected');
     let playerId: string | null = null;
 
-    ws.on('message', (data: WebSocket.RawData) => {
+    ws.on('message', (data: RawData) => {
       try {
         const msg: WebSocketMessage = JSON.parse(data.toString());
         if (msg.type === 'join') {
