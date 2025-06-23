@@ -6,6 +6,8 @@
 - Ability to enter player name and join onto the game view (as colored rectangle (jetski) with player name tag above)
 - This view will be used by players on their phone.
 - Game controller view (2 big buttons which each fill half of the screen for left and right jetski motor in the colors of the players jetski), displayed on jetski.calfur.dev/controller
+- Inactive players get kicked after 1min inactivity (no steering requests) based on socket timeout
+- Prevent duplicated name inputs over all active players, they have to be unique. The scoreboard does not have to be considered.
 - Responsive landing page
   - Title "Jetski"
   - Subtitle "Vibe Code Challenge For All - Online.ch Palermo"
@@ -31,13 +33,14 @@
 - Tailwind
 - Next.js
 - Phaser
+- Websocket
 
 ## TODOs
 - [x] Create hello world app
 - [x] Setup GitHub Action which creates dockerimage & triggers deployment on calfur-dev
 - [x] Create 2 sub pages (game view & game controller)
 - [x] Add links to sub pages
-- [ ] Setup basic game view with Phaser (water area)
+- [x] Setup basic game view with Phaser (water area)
 - [ ] Multiplayer ability, joining with devices as game controllers adds player names to game view
 - [ ] Add player jetski model (colored rectangle with name tag)
 - [ ] Implement basic player movement (left/right controls)
