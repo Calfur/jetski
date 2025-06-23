@@ -24,8 +24,11 @@ Vibe Code Challenge For All - Online.ch Palermo
 > 22.06.2025 1h
 > Create linked sub pages & landing page
 
-> 23.06.2025 20:30-
-> 
+> 23.06.2025 1h
+> Implement multiplayer ability, joining with devices as game controllers adds player names to game view
+
+> 23.06.2025 2h
+> Make websocket available on the hosted version by modifying the deployment
 
 ## My rules
 

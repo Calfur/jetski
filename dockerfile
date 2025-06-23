@@ -40,8 +40,12 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Overwrite the Next.js server.js with our custom server that includes WebSocket support
+# Copy our custom server
 COPY --from=builder --chown=nextjs:nodejs /app/dist/server.js ./server.js
+
+# Install only the production dependencies our custom server needs
+COPY --from=builder /app/package.json ./
+RUN npm install --production --ignore-scripts ws uuid
 
 USER nextjs
 
