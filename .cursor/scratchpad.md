@@ -41,7 +41,7 @@
 - [x] Create 2 sub pages (game view & game controller)
 - [x] Add links to sub pages
 - [x] Setup basic game view with Phaser (water area)
-- [ ] Multiplayer ability, joining with devices as game controllers adds player names to game view
+- [x] Multiplayer ability, joining with devices as game controllers adds player names to game view
 - [ ] Add player jetski model (colored rectangle with name tag)
 - [ ] Implement basic player movement (left/right controls)
 - [ ] Create collectible items (random spawn, limited amount)

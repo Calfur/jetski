@@ -1,10 +1,19 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+
+type WebSocketMessage = {
+  type: 'playerList' | 'error';
+  players?: string[];
+  error?: string;
+};
 
 function WaterGame() {
   const containerRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<HTMLDivElement>(null);
   const phaserGameRef = useRef<import("phaser").Game | null>(null);
+  const [players, setPlayers] = useState<string[]>([]);
+  const [isConnected, setIsConnected] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
 
   // Calculate the largest 16:9 size that fits in the viewport
   function getMax16by9Size() {
@@ -19,6 +28,40 @@ function WaterGame() {
     }
     return { width, height };
   }
+
+  useEffect(() => {
+    // Connect to WebSocket server
+    const ws = new WebSocket('ws://localhost:3001');
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      setIsConnected(true);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const message: WebSocketMessage = JSON.parse(event.data);
+        if (message.type === 'playerList' && message.players) {
+          setPlayers(message.players);
+        }
+      } catch {
+        console.error('Invalid message from server');
+      }
+    };
+
+    ws.onerror = () => {
+      console.error('WebSocket connection error');
+      setIsConnected(false);
+    };
+
+    ws.onclose = () => {
+      setIsConnected(false);
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, []);
 
   useEffect(() => {
     let gameInstance: import("phaser").Game | null = null;
@@ -80,6 +123,25 @@ function WaterGame() {
         className="shadow-2xl"
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       />
+      
+      {/* Player list overlay */}
+      <div className="absolute top-4 left-4 bg-black bg-opacity-50 text-white p-4 rounded-lg">
+        <h3 className="text-lg font-bold mb-2">Players ({players.length})</h3>
+        {!isConnected && (
+          <p className="text-red-400 text-sm">Disconnected from server</p>
+        )}
+        {players.length === 0 ? (
+          <p className="text-gray-400 text-sm">No players joined</p>
+        ) : (
+          <ul className="space-y-1">
+            {players.map((player, index) => (
+              <li key={index} className="text-sm">
+                {player}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
