@@ -24,12 +24,12 @@ type Player = {
 
 // Color palette for jetskis - 30 colors with good contrast against blue water
 const JETSKI_COLORS = [
-  '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-  '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
-  '#F8C471', '#82E0AA', '#F1948A', '#85C1E9', '#D7BDE2',
-  '#F9E79F', '#A9DFBF', '#F5B7B1', '#AED6F1', '#D2B4DE',
-  '#FAD7A0', '#ABEBC6', '#F1948A', '#85C1E9', '#D7BDE2',
-  '#F9E79F', '#A9DFBF', '#F5B7B1', '#AED6F1', '#D2B4DE'
+  '#8B0000', '#006400', '#B8860B', '#8B008B', '#D2691E',
+  '#4B0082', '#228B22', '#B22222', '#32CD32', '#DC143C',
+  '#8FBC8F', '#CD853F', '#DDA0DD', '#F4A460', '#9370DB',
+  '#20B2AA', '#FF6347', '#7B68EE', '#3CB371', '#FF4500',
+  '#8A2BE2', '#00CED1', '#FF8C00', '#9932CC', '#2E8B57',
+  '#FF1493', '#00FA9A', '#FF69B4', '#00BFFF', '#FFD700'
 ];
 
 // WebSocket message types
