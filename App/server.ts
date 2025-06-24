@@ -12,6 +12,26 @@ const port = parseInt(process.env.PORT || '3000', 10);
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
 
+// Color palette for jetskis - 30 colors with good contrast against blue water
+const JETSKI_COLORS = [
+  '#8B0000', '#006400', '#B8860B', '#8B008B', '#D2691E',
+  '#4B0082', '#228B22', '#B22222', '#32CD32', '#DC143C',
+  '#8FBC8F', '#CD853F', '#DDA0DD', '#F4A460', '#9370DB',
+  '#20B2AA', '#FF6347', '#7B68EE', '#3CB371', '#FF4500',
+  '#8A2BE2', '#00CED1', '#FF8C00', '#9932CC', '#2E8B57',
+  '#FF1493', '#00FA9A', '#FF69B4', '#00BFFF', '#FFD700'
+];
+
+// Physics constants
+const PHYSICS = {
+  maxSpeed: 0.1, // a full screen width in 10 seconds
+  acceleration: 0.5, // reaches max speed in 2 seconds
+  deceleration: 0.06, // constant deceleration
+  dragFactor: 0.2, // slows down faster at high speed
+  maxTurnSpeed: Math.PI / 3, // 60 deg/s
+  driftFactor: 0.1, // Lower means more drift
+} as const;
+
 // Player type
 type Player = {
   id: string;
@@ -26,16 +46,6 @@ type Player = {
   // Velocity components
   velocityX: number;
   velocityY: number;
-  rotationalVelocity: number; // radians per second
-
-  // Physics properties
-  maxSpeed: number; // units per second
-  acceleration: number; // units per second^2
-  deceleration: number; // constant deceleration
-  dragFactor: number; // speed-dependent deceleration
-  maxTurnSpeed: number; // radians per second
-  rotationalAcceleration: number; // radians per second^2
-  driftFactor: number; // 0-1, how much velocity follows rotation. 1 = no drift.
 
   // Control state
   controls: {
@@ -43,16 +53,6 @@ type Player = {
     right: boolean;
   };
 };
-
-// Color palette for jetskis - 30 colors with good contrast against blue water
-const JETSKI_COLORS = [
-  '#8B0000', '#006400', '#B8860B', '#8B008B', '#D2691E',
-  '#4B0082', '#228B22', '#B22222', '#32CD32', '#DC143C',
-  '#8FBC8F', '#CD853F', '#DDA0DD', '#F4A460', '#9370DB',
-  '#20B2AA', '#FF6347', '#7B68EE', '#3CB371', '#FF4500',
-  '#8A2BE2', '#00CED1', '#FF8C00', '#9932CC', '#2E8B57',
-  '#FF1493', '#00FA9A', '#FF69B4', '#00BFFF', '#FFD700'
-];
 
 // WebSocket message types
 type WebSocketMessage = {
@@ -166,47 +166,39 @@ app.prepare().then(() => {
     const deltaTime = 1 / 60; // 60 FPS physics update
     
     players.forEach((player) => {
-      const { controls, rotationalAcceleration, maxTurnSpeed, acceleration, deceleration, maxSpeed, driftFactor } = player;
+      const { controls } = player;
       
       // 1. Handle rotational acceleration
       if (controls.left && !controls.right) { // Accelerate turning right
-        player.rotationalVelocity = Math.min(player.rotationalVelocity + rotationalAcceleration * deltaTime, maxTurnSpeed);
+        player.rotation += PHYSICS.maxTurnSpeed * deltaTime;
       } else if (controls.right && !controls.left) { // Accelerate turning left
-        player.rotationalVelocity = Math.max(player.rotationalVelocity - rotationalAcceleration * deltaTime, -maxTurnSpeed);
-      } else { // Decelerate rotation to zero
-        if (player.rotationalVelocity > 0) {
-          player.rotationalVelocity = Math.max(player.rotationalVelocity - rotationalAcceleration * deltaTime, 0);
-        } else if (player.rotationalVelocity < 0) {
-          player.rotationalVelocity = Math.min(player.rotationalVelocity + rotationalAcceleration * deltaTime, 0);
-        }
+        player.rotation -= PHYSICS.maxTurnSpeed * deltaTime;
       }
 
-      // 2. Update rotation based on rotational velocity
-      player.rotation += player.rotationalVelocity * deltaTime;
-
-      // 3. Handle linear acceleration/deceleration
+      // 2. Handle linear acceleration/deceleration
       if (controls.left || controls.right) { // accelerating
-        player.speed = Math.min(player.speed + acceleration * deltaTime, maxSpeed);
+        player.speed = Math.min(player.speed + PHYSICS.acceleration * deltaTime, PHYSICS.maxSpeed);
       } else { // decelerating with drag
-        const currentDeceleration = deceleration + (player.speed * player.dragFactor);
+        const currentDeceleration = PHYSICS.deceleration + (player.speed * PHYSICS.dragFactor);
         player.speed = Math.max(player.speed - currentDeceleration * deltaTime, 0);
       }
 
-      // 4. Calculate target velocity based on rotation and speed
+      // 3. Calculate target velocity based on rotation and speed
       const movementAngle = player.rotation - Math.PI / 2; // Adjust for upward-facing SVG
       const targetVelocityX = Math.cos(movementAngle) * player.speed;
       const targetVelocityY = Math.sin(movementAngle) * player.speed;
 
-      // 5. Smoothly interpolate current velocity towards target (the drift)
-      const lerpFactor = 1 - Math.pow(1 - driftFactor, deltaTime * 60); // Frame-rate independent lerp
+      // 4. Smoothly interpolate current velocity towards target (the drift)
+      // driftFactor of 0.01 means very slow drift, 0.1 means moderate drift, 0.5 means fast drift
+      const lerpFactor = PHYSICS.driftFactor * deltaTime * 60; // Simplified calculation
       player.velocityX = lerp(player.velocityX, targetVelocityX, lerpFactor);
       player.velocityY = lerp(player.velocityY, targetVelocityY, lerpFactor);
 
-      // 6. Update position based on the new drifting velocity
+      // 5. Update position based on the new drifting velocity
       player.x += player.velocityX * deltaTime;
       player.y += player.velocityY * deltaTime;
       
-      // 7. Keep players within bounds (0 to 1)
+      // 6. Keep players within bounds (0 to 1)
       player.x = Math.max(0, Math.min(1, player.x));
       player.y = Math.max(0, Math.min(1, player.y));
     });
@@ -249,14 +241,6 @@ app.prepare().then(() => {
             speed: 0,
             velocityX: 0,
             velocityY: 0,
-            rotationalVelocity: 0,
-            maxSpeed: 0.1, // a full screen width in 10 seconds
-            acceleration: 0.5, // reaches max speed in 2 seconds
-            deceleration: 0.06, // constant deceleration
-            dragFactor: 0.2, // slows down faster at high speed
-            maxTurnSpeed: Math.PI / 3, // 60 deg/s
-            rotationalAcceleration: Math.PI / 1.5, // 0.5s to reach max turn speed
-            driftFactor: 0.2, // Lower means more drift
             controls: { left: false, right: false },
           });
           console.log(`Player joined: ${name}`);
