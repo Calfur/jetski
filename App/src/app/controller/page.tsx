@@ -14,10 +14,11 @@ export default function GameController() {
   const [isJoined, setIsJoined] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
+  // Effect for WebSocket connection - runs once
   useEffect(() => {
-    // Connect to WebSocket server - use dynamic URL for production
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
     const wsUrl = `${protocol}//${host}/ws`;
@@ -32,18 +33,7 @@ export default function GameController() {
     ws.onmessage = (event) => {
       try {
         const message: WebSocketMessage = JSON.parse(event.data);
-        if (message.type === 'error') {
-          setError(message.error || 'Unknown error');
-          setIsLoading(false);
-        } else if (message.type === 'playerList') {
-          // Player list update - could be used for validation
-          console.log('Current players:', message.players);
-          // If we were loading (trying to join) and got a player list, we successfully joined
-          if (isLoading) {
-            setIsJoined(true);
-            setIsLoading(false);
-          }
-        }
+        setLastMessage(message);
       } catch {
         setError('Invalid message from server');
       }
@@ -62,7 +52,25 @@ export default function GameController() {
     return () => {
       ws.close();
     };
-  }, [isLoading]);
+  }, []);
+
+  // Effect for handling incoming messages
+  useEffect(() => {
+    if (!lastMessage) {
+      return;
+    }
+
+    if (lastMessage.type === 'error') {
+      setError(lastMessage.error || 'Unknown error');
+      setIsLoading(false);
+    } else if (lastMessage.type === 'playerList') {
+      console.log('Current players:', lastMessage.players);
+      if (isLoading) {
+        setIsJoined(true);
+        setIsLoading(false);
+      }
+    }
+  }, [lastMessage, isLoading]);
 
   const handleJoin = () => {
     if (!playerName.trim()) {
