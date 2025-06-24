@@ -26,6 +26,8 @@ export function WaterGame({ playerData }: WaterGameProps) {
   const phaserGameRef = useRef<import("phaser").Game | null>(null);
   const sceneRef = useRef<import("phaser").Scene | null>(null);
   const jetskiManagerRef = useRef<ReturnType<typeof createJetskiManager> | null>(null);
+  const playerDataRef = useRef(playerData);
+  playerDataRef.current = playerData;
 
   useEffect(() => {
     let gameInstance: import("phaser").Game | null = null;
@@ -50,6 +52,11 @@ export function WaterGame({ playerData }: WaterGameProps) {
         create() {
           // Store scene reference for updates
           sceneRef.current = this;
+
+          // Initial jetski creation
+          if (jetskiManagerRef.current && playerDataRef.current.length > 0) {
+            jetskiManagerRef.current.updateJetskis(this, playerDataRef.current);
+          }
         }
       }
       
@@ -91,7 +98,7 @@ export function WaterGame({ playerData }: WaterGameProps) {
 
   // Update jetskis when player data changes
   useEffect(() => {
-    if (sceneRef.current && jetskiManagerRef.current && playerData.length > 0) {
+    if (sceneRef.current && jetskiManagerRef.current) {
       jetskiManagerRef.current.updateJetskis(sceneRef.current, playerData);
     }
   }, [playerData]);

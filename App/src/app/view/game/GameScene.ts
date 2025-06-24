@@ -5,23 +5,37 @@ export function createJetskiManager() {
   const jetskis = new Map<string, JetskiObject>();
   
   return {
-    updateJetskis(scene: any, players: PlayerData[]) {
-      // Clear existing jetskis
-      jetskis.forEach(({ rectangle, text }) => {
-        rectangle.destroy();
-        text.destroy();
-      });
-      jetskis.clear();
-      
-      // Create new jetskis
-      players.forEach(player => {
-        createJetski(scene, player, jetskis);
-      });
+    updateJetskis(scene: import("phaser").Scene, players: PlayerData[]) {
+      const currentPlayerIds = new Set(players.map(p => p.id));
+
+      // Remove jetskis for players who are no longer present
+      for (const [id, jetski] of jetskis.entries()) {
+        if (!currentPlayerIds.has(id)) {
+          jetski.rectangle.destroy();
+          jetski.text.destroy();
+          jetskis.delete(id);
+        }
+      }
+
+      // Add or update jetskis for current players
+      for (const player of players) {
+        if (!jetskis.has(player.id)) {
+          createJetski(scene, player, jetskis);
+        } else {
+          // Optional: Update existing jetski properties if they can change
+          const jetski = jetskis.get(player.id)!;
+          const { width, height } = scene.scale;
+          jetski.rectangle.x = player.x * width;
+          jetski.rectangle.y = player.y * height;
+          jetski.text.x = player.x * width;
+          jetski.text.y = player.y * height - (jetski.rectangle.height / 2) - 20;
+        }
+      }
     }
   };
 }
 
-function createJetski(scene: any, player: PlayerData, jetskis: Map<string, JetskiObject>) {
+function createJetski(scene: import("phaser").Scene, player: PlayerData, jetskis: Map<string, JetskiObject>) {
   const { width, height } = scene.scale;
   const jetskiWidth = width / 40; // 1/40th of screen width
   const jetskiHeight = jetskiWidth * 0.6; // Aspect ratio for jetski
