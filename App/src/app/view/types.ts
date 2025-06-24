@@ -7,12 +7,13 @@ export type WebSocketMessage = {
 export type PlayerData = {
   id: string;
   name: string;
+  color: string;
   x: number;
   y: number;
-  color: string;
+  rotation: number;
 };
 
 export type JetskiObject = {
-  rectangle: import('phaser').GameObjects.Rectangle;
-  text: import('phaser').GameObjects.Text;
+  image: import("phaser").GameObjects.Image;
+  text: import("phaser").GameObjects.Text;
 }; 

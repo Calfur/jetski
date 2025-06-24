@@ -28,6 +28,28 @@
 - Death on collisions of two players
 - Explosions on collision
 
+### Player Movement & Controls
+- **Physics**:
+  - Jetski has a direction and accelerates/decelerates.
+  - ~2 seconds to reach max speed.
+  - ~4 seconds to come to a complete stop.
+- **Controls**:
+  - Two boost buttons: left and right.
+  - Pressing left turns right, right turns left.
+  - Pressing both moves straight.
+  - Jetski SVG rotates, but the name tag remains static.
+- **Boundaries**:
+  - Jetskis cannot leave the water area.
+  - Leaving the area triggers a "Game Over" screen with a "Rejoin" button on the controller.
+- **Network**:
+  - Controller sends button state to the server 20 times per second (20Hz).
+  - Server calculates movement and broadcasts updated game state.
+  - View page only renders the received state.
+- **Controller UI**:
+  - Display player's name above the controls.
+  - Control buttons are colored with the player's jetski color.
+  - Buttons are highlighted when pressed.
+
 ## Tech stack
 - Typescript
 - Tailwind

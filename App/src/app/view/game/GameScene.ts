@@ -11,7 +11,7 @@ export function createJetskiManager() {
       // Remove jetskis for players who are no longer present
       for (const [id, jetski] of jetskis.entries()) {
         if (!currentPlayerIds.has(id)) {
-          jetski.rectangle.destroy();
+          jetski.image.destroy();
           jetski.text.destroy();
           jetskis.delete(id);
         }
@@ -23,7 +23,7 @@ export function createJetskiManager() {
         if (jetskis.has(player.id)) {
           // Destroy existing jetski before recreating
           const existingJetski = jetskis.get(player.id)!;
-          existingJetski.rectangle.destroy();
+          existingJetski.image.destroy();
           existingJetski.text.destroy();
           jetskis.delete(player.id);
         }
@@ -37,7 +37,7 @@ export function createJetskiManager() {
 
 function createJetski(scene: import("phaser").Scene, player: PlayerData, jetskis: Map<string, JetskiObject>) {
   const { width, height } = scene.scale;
-  const jetskiWidth = width / 40; // 1/40th of screen width
+  const jetskiWidth = width / 60; // 1/60th of screen width
   const jetskiHeight = jetskiWidth * 0.6; // Aspect ratio for jetski
   
   // Convert normalized coordinates (0-1) to screen coordinates
@@ -47,18 +47,18 @@ function createJetski(scene: import("phaser").Scene, player: PlayerData, jetskis
   // Convert hex color string to number
   const colorNumber = parseInt(player.color.replace('#', ''), 16);
   
-  // Create jetski rectangle
-  const rectangle = scene.add.rectangle(x, y, jetskiWidth, jetskiHeight, colorNumber);
-  
-  // Set border stroke width to scale with jetski size
-  const strokeWidth = Math.max(1, Math.min(4, width / 640)); // Scale stroke between 1-4px
-  rectangle.setStrokeStyle(strokeWidth, 0x000000); // Black border
+  // Create jetski image
+  const image = scene.add.image(x, y, 'jetski');
+  image.setScale(jetskiWidth / image.width);
+  image.setTint(colorNumber);
+  image.setRotation(player.rotation); // Use server-provided rotation
+  image.setOrigin(0.5, 0.5); // Center the origin
   
   // Calculate dynamic font size based on view size
   const fontSize = Math.max(12, Math.min(24, width / 80)); // Scale between 12px and 24px based on screen width
   
   // Use font size for spacing between text and jetski
-  const textSpacing = fontSize;
+  const textSpacing = fontSize * 2;
   
   // Create name tag above jetski
   const text = scene.add.text(x, y - jetskiHeight/2 - textSpacing, player.name, {
@@ -71,5 +71,5 @@ function createJetski(scene: import("phaser").Scene, player: PlayerData, jetskis
   text.setOrigin(0.5);
   
   // Store references
-  jetskis.set(player.id, { rectangle, text });
+  jetskis.set(player.id, { image, text });
 } 

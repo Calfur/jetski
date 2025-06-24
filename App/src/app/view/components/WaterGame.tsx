@@ -49,6 +49,10 @@ export function WaterGame({ playerData }: WaterGameProps) {
           super({ key: 'GameScene' });
         }
         
+        preload() {
+          this.load.svg('jetski', 'assets/jetski.svg');
+        }
+
         create() {
           // Store scene reference for updates
           sceneRef.current = this;

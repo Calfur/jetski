@@ -20,6 +20,7 @@ type Player = {
   x: number;
   y: number;
   color: string;
+  rotation: number;
 };
 
 // Color palette for jetskis - 30 colors with good contrast against blue water
@@ -50,6 +51,7 @@ type PlayerData = {
   x: number;
   y: number;
   color: string;
+  rotation: number;
 };
 
 type GameStateResponse = {
@@ -94,7 +96,8 @@ app.prepare().then(() => {
       name: p.name,
       x: p.x,
       y: p.y,
-      color: p.color
+      color: p.color,
+      rotation: p.rotation
     }));
     const msg: GameStateResponse = { type: 'gameState', players: playerData };
     wss.clients.forEach((client) => {
@@ -158,7 +161,8 @@ app.prepare().then(() => {
             lastActive: Date.now(), 
             x: position.x, 
             y: position.y, 
-            color: JETSKI_COLORS[Math.floor(Math.random() * JETSKI_COLORS.length)] 
+            color: JETSKI_COLORS[Math.floor(Math.random() * JETSKI_COLORS.length)],
+            rotation: Math.random() * 2 * Math.PI
           });
           console.log(`Player joined: ${name}`);
           broadcastPlayerList();
@@ -212,7 +216,8 @@ app.prepare().then(() => {
         name: p.name,
         x: p.x,
         y: p.y,
-        color: p.color
+        color: p.color,
+        rotation: p.rotation
       }))
     };
     ws.send(JSON.stringify(initialGameState));
