@@ -3,9 +3,18 @@
 import { useState, useEffect, useRef } from 'react';
 
 type WebSocketMessage = {
-  type: 'playerList' | 'error';
-  players?: string[];
+  type: 'playerList' | 'error' | 'gameState';
+  players?: string[] | PlayerData[];
   error?: string;
+};
+
+type PlayerData = {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  color: string;
+  rotation: number;
 };
 
 export default function GameController() {
@@ -15,7 +24,11 @@ export default function GameController() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
+  const [playerData, setPlayerData] = useState<PlayerData | null>(null);
+  const [leftPressed, setLeftPressed] = useState(false);
+  const [rightPressed, setRightPressed] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
+  const controlIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Effect for WebSocket connection - runs once
   useEffect(() => {
@@ -66,10 +79,19 @@ export default function GameController() {
     } else if (lastMessage.type === 'playerList') {
       console.log('Current players:', lastMessage.players);
       // Check if current player name is in the player list to confirm successful join
-      if (lastMessage.players && lastMessage.players.includes(playerName)) {
+      if (lastMessage.players && Array.isArray(lastMessage.players) && 
+          lastMessage.players.some(p => typeof p === 'string' && p === playerName)) {
         setIsJoined(true);
         setIsLoading(false);
         setError('');
+      }
+    } else if (lastMessage.type === 'gameState') {
+      // Find current player in game state
+      if (lastMessage.players && Array.isArray(lastMessage.players)) {
+        const currentPlayer = lastMessage.players.find(p => typeof p === 'object' && p.name === playerName);
+        if (currentPlayer && typeof currentPlayer === 'object') {
+          setPlayerData(currentPlayer as PlayerData);
+        }
       }
     }
   }, [lastMessage, playerName]);
@@ -109,6 +131,44 @@ export default function GameController() {
     }
   };
 
+  // Function to send control updates
+  const sendControls = () => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'controls',
+        controls: {
+          leftPressed,
+          rightPressed
+        }
+      }));
+    }
+  };
+
+  // Effect to send controls at 20Hz when joined
+  useEffect(() => {
+    if (isJoined) {
+      controlIntervalRef.current = setInterval(sendControls, 50); // 20Hz = 50ms
+    } else {
+      if (controlIntervalRef.current) {
+        clearInterval(controlIntervalRef.current);
+        controlIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (controlIntervalRef.current) {
+        clearInterval(controlIntervalRef.current);
+        controlIntervalRef.current = null;
+      }
+    };
+  }, [isJoined, leftPressed, rightPressed]);
+
+  // Control button handlers
+  const handleLeftPress = () => setLeftPressed(true);
+  const handleLeftRelease = () => setLeftPressed(false);
+  const handleRightPress = () => setRightPressed(true);
+  const handleRightRelease = () => setRightPressed(false);
+
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -122,11 +182,56 @@ export default function GameController() {
 
   if (isJoined) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-white mb-4">Game Controller</h1>
-          <p className="text-green-400 mb-4">Joined as: {playerName}</p>
-          <p className="text-gray-400">Game controls will appear here...</p>
+      <div className="min-h-screen bg-gray-900 flex flex-col">
+        {/* Player info header */}
+        <div className="bg-gray-800 p-4 text-center">
+          <h1 className="text-2xl font-bold text-white">Game Controller</h1>
+          <p className="text-green-400">Playing as: {playerName}</p>
+          {playerData && (
+            <div 
+              className="inline-block w-4 h-4 rounded mt-2"
+              style={{ backgroundColor: playerData.color }}
+            ></div>
+          )}
+        </div>
+
+        {/* Control buttons */}
+        <div className="flex-1 flex">
+          {/* Left button */}
+          <button
+            className={`flex-1 flex items-center justify-center text-white text-2xl font-bold transition-all duration-100 ${
+              leftPressed ? 'bg-opacity-80' : 'bg-opacity-60'
+            }`}
+            style={{ 
+              backgroundColor: playerData?.color || '#3B82F6',
+              opacity: leftPressed ? 0.8 : 0.6
+            }}
+            onTouchStart={handleLeftPress}
+            onTouchEnd={handleLeftRelease}
+            onMouseDown={handleLeftPress}
+            onMouseUp={handleLeftRelease}
+            onMouseLeave={handleLeftRelease}
+          >
+            LEFT
+          </button>
+
+          {/* Right button */}
+          <button
+            className={`flex-1 flex items-center justify-center text-white text-2xl font-bold transition-all duration-100 ${
+              rightPressed ? 'bg-opacity-80' : 'bg-opacity-60'
+            }`}
+            style={{ 
+              backgroundColor: playerData?.color || '#3B82F6',
+              opacity: rightPressed ? 0.8 : 0.6
+            }}
+            onTouchStart={handleRightPress}
+            onTouchEnd={handleRightRelease}
+            onMouseDown={handleRightPress}
+            onMouseUp={handleRightRelease}
+            onMouseLeave={handleRightRelease}
+          >
+            RIGHT
+          </button>
         </div>
       </div>
     );

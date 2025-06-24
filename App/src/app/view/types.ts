@@ -11,6 +11,7 @@ export type PlayerData = {
   x: number;
   y: number;
   rotation: number;
+  speed: number;
 };
 
 export type JetskiObject = {

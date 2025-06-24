@@ -17,10 +17,23 @@ type Player = {
   id: string;
   name: string;
   lastActive: number;
-  x: number;
-  y: number;
+  x: number; // position (0 to 1)
+  y: number; // position (0 to 1)
   color: string;
-  rotation: number;
+  rotation: number; // radians
+  speed: number; // units per second
+  
+  // Physics properties
+  maxSpeed: number; // units per second
+  acceleration: number; // units per second^2
+  deceleration: number; // units per second^2
+  turnSpeed: number; // radians per second
+
+  // Control state
+  controls: {
+    left: boolean;
+    right: boolean;
+  };
 };
 
 // Color palette for jetskis - 30 colors with good contrast against blue water
@@ -35,8 +48,12 @@ const JETSKI_COLORS = [
 
 // WebSocket message types
 type WebSocketMessage = {
-  type: 'join' | 'heartbeat';
+  type: 'join' | 'heartbeat' | 'controls';
   name?: string;
+  controls?: {
+    leftPressed: boolean;
+    rightPressed: boolean;
+  };
 };
 
 type WebSocketResponse = {
@@ -52,6 +69,7 @@ type PlayerData = {
   y: number;
   color: string;
   rotation: number;
+  speed: number;
 };
 
 type GameStateResponse = {
@@ -97,7 +115,8 @@ app.prepare().then(() => {
       x: p.x,
       y: p.y,
       color: p.color,
-      rotation: p.rotation
+      rotation: p.rotation,
+      speed: p.speed,
     }));
     const msg: GameStateResponse = { type: 'gameState', players: playerData };
     wss.clients.forEach((client) => {
@@ -131,6 +150,41 @@ app.prepare().then(() => {
     }
   }
 
+  function updateGamePhysics(): void {
+    const deltaTime = 1 / 60; // 60 FPS physics update
+    
+    players.forEach((player) => {
+      const { controls, turnSpeed, acceleration, deceleration, maxSpeed } = player;
+      
+      // 1. Handle turning
+      if (controls.left && !controls.right) { // left button -> turn right
+        player.rotation += turnSpeed * deltaTime;
+      } else if (controls.right && !controls.left) { // right button -> turn left
+        player.rotation -= turnSpeed * deltaTime;
+      }
+
+      // 2. Handle acceleration/deceleration
+      if (controls.left || controls.right) { // accelerating
+        player.speed = Math.min(player.speed + acceleration * deltaTime, maxSpeed);
+      } else { // decelerating
+        player.speed = Math.max(player.speed - deceleration * deltaTime, 0);
+      }
+
+      // 3. Update position based on new rotation and speed
+      // Offset angle by -90 degrees (PI/2 radians) because the jetski SVG faces upwards
+      const movementAngle = player.rotation - Math.PI / 2;
+      const distance = player.speed * deltaTime;
+      player.x += Math.cos(movementAngle) * distance;
+      player.y += Math.sin(movementAngle) * distance;
+      
+      // 4. Keep players within bounds (0 to 1)
+      player.x = Math.max(0, Math.min(1, player.x));
+      player.y = Math.max(0, Math.min(1, player.y));
+    });
+    
+    broadcastGameState();
+  }
+
   // Set up WebSocket connection handling
   wss.on('connection', (ws: WebSocket) => {
     console.log('WebSocket client connected');
@@ -162,7 +216,13 @@ app.prepare().then(() => {
             x: position.x, 
             y: position.y, 
             color: JETSKI_COLORS[Math.floor(Math.random() * JETSKI_COLORS.length)],
-            rotation: Math.random() * 2 * Math.PI
+            rotation: Math.random() * 2 * Math.PI,
+            speed: 0,
+            maxSpeed: 0.2, // a full screen width in 5 seconds
+            acceleration: 0.1, // reaches max speed in 2 seconds
+            deceleration: 0.05, // stops from max speed in 4 seconds
+            turnSpeed: Math.PI / 2, // 180 degrees per second
+            controls: { left: false, right: false },
           });
           console.log(`Player joined: ${name}`);
           broadcastPlayerList();
@@ -171,6 +231,15 @@ app.prepare().then(() => {
           if (playerId) {
             const p = players.find((p) => p.id === playerId);
             if (p) p.lastActive = Date.now();
+          }
+        } else if (msg.type === 'controls') {
+          if (playerId) {
+            const p = players.find((p) => p.id === playerId);
+            if (p && msg.controls) {
+              p.lastActive = Date.now();
+              p.controls.left = msg.controls.leftPressed;
+              p.controls.right = msg.controls.rightPressed;
+            }
           }
         }
       } catch (err) {
@@ -217,7 +286,8 @@ app.prepare().then(() => {
         x: p.x,
         y: p.y,
         color: p.color,
-        rotation: p.rotation
+        rotation: p.rotation,
+        speed: p.speed,
       }))
     };
     ws.send(JSON.stringify(initialGameState));
@@ -225,6 +295,9 @@ app.prepare().then(() => {
 
   // Start inactivity cleanup
   setInterval(removeInactivePlayers, 10_000);
+
+  // Start game physics loop
+  setInterval(updateGamePhysics, 1000 / 60); // 60 FPS
 
   server.listen(port, () => {
     console.log(`> Ready on http://${hostname}:${port}`);
