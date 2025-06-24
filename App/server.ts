@@ -23,11 +23,18 @@ type Player = {
   rotation: number; // radians
   speed: number; // units per second
   
+  // Velocity components
+  velocityX: number;
+  velocityY: number;
+  rotationalVelocity: number; // radians per second
+
   // Physics properties
   maxSpeed: number; // units per second
   acceleration: number; // units per second^2
   deceleration: number; // units per second^2
-  turnSpeed: number; // radians per second
+  maxTurnSpeed: number; // radians per second
+  rotationalAcceleration: number; // radians per second^2
+  driftFactor: number; // 0-1, how much velocity follows rotation. 1 = no drift.
 
   // Control state
   controls: {
@@ -150,34 +157,54 @@ app.prepare().then(() => {
     }
   }
 
+  function lerp(a: number, b: number, t: number): number {
+    return a + (b - a) * t;
+  }
+
   function updateGamePhysics(): void {
     const deltaTime = 1 / 60; // 60 FPS physics update
     
     players.forEach((player) => {
-      const { controls, turnSpeed, acceleration, deceleration, maxSpeed } = player;
+      const { controls, rotationalAcceleration, maxTurnSpeed, acceleration, deceleration, maxSpeed, driftFactor } = player;
       
-      // 1. Handle turning
-      if (controls.left && !controls.right) { // left button -> turn right
-        player.rotation += turnSpeed * deltaTime;
-      } else if (controls.right && !controls.left) { // right button -> turn left
-        player.rotation -= turnSpeed * deltaTime;
+      // 1. Handle rotational acceleration
+      if (controls.left && !controls.right) { // Accelerate turning right
+        player.rotationalVelocity = Math.min(player.rotationalVelocity + rotationalAcceleration * deltaTime, maxTurnSpeed);
+      } else if (controls.right && !controls.left) { // Accelerate turning left
+        player.rotationalVelocity = Math.max(player.rotationalVelocity - rotationalAcceleration * deltaTime, -maxTurnSpeed);
+      } else { // Decelerate rotation to zero
+        if (player.rotationalVelocity > 0) {
+          player.rotationalVelocity = Math.max(player.rotationalVelocity - rotationalAcceleration * deltaTime, 0);
+        } else if (player.rotationalVelocity < 0) {
+          player.rotationalVelocity = Math.min(player.rotationalVelocity + rotationalAcceleration * deltaTime, 0);
+        }
       }
 
-      // 2. Handle acceleration/deceleration
+      // 2. Update rotation based on rotational velocity
+      player.rotation += player.rotationalVelocity * deltaTime;
+
+      // 3. Handle linear acceleration/deceleration
       if (controls.left || controls.right) { // accelerating
         player.speed = Math.min(player.speed + acceleration * deltaTime, maxSpeed);
       } else { // decelerating
         player.speed = Math.max(player.speed - deceleration * deltaTime, 0);
       }
 
-      // 3. Update position based on new rotation and speed
-      // Offset angle by -90 degrees (PI/2 radians) because the jetski SVG faces upwards
-      const movementAngle = player.rotation - Math.PI / 2;
-      const distance = player.speed * deltaTime;
-      player.x += Math.cos(movementAngle) * distance;
-      player.y += Math.sin(movementAngle) * distance;
+      // 4. Calculate target velocity based on rotation and speed
+      const movementAngle = player.rotation - Math.PI / 2; // Adjust for upward-facing SVG
+      const targetVelocityX = Math.cos(movementAngle) * player.speed;
+      const targetVelocityY = Math.sin(movementAngle) * player.speed;
+
+      // 5. Smoothly interpolate current velocity towards target (the drift)
+      const lerpFactor = 1 - Math.pow(1 - driftFactor, deltaTime * 60); // Frame-rate independent lerp
+      player.velocityX = lerp(player.velocityX, targetVelocityX, lerpFactor);
+      player.velocityY = lerp(player.velocityY, targetVelocityY, lerpFactor);
+
+      // 6. Update position based on the new drifting velocity
+      player.x += player.velocityX * deltaTime;
+      player.y += player.velocityY * deltaTime;
       
-      // 4. Keep players within bounds (0 to 1)
+      // 7. Keep players within bounds (0 to 1)
       player.x = Math.max(0, Math.min(1, player.x));
       player.y = Math.max(0, Math.min(1, player.y));
     });
@@ -218,10 +245,15 @@ app.prepare().then(() => {
             color: JETSKI_COLORS[Math.floor(Math.random() * JETSKI_COLORS.length)],
             rotation: Math.random() * 2 * Math.PI,
             speed: 0,
+            velocityX: 0,
+            velocityY: 0,
+            rotationalVelocity: 0,
             maxSpeed: 0.2, // a full screen width in 5 seconds
             acceleration: 0.1, // reaches max speed in 2 seconds
             deceleration: 0.05, // stops from max speed in 4 seconds
-            turnSpeed: Math.PI / 2, // 180 degrees per second
+            maxTurnSpeed: Math.PI / 2, // 90 deg/s
+            rotationalAcceleration: Math.PI, // 1s to reach max turn speed
+            driftFactor: 0.95, // Lower means more drift
             controls: { left: false, right: false },
           });
           console.log(`Player joined: ${name}`);
