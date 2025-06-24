@@ -2,16 +2,26 @@
 import { useEffect, useRef, useState } from "react";
 
 type WebSocketMessage = {
-  type: 'playerList' | 'error';
-  players?: string[];
+  type: 'playerList' | 'error' | 'gameState';
+  players?: string[] | PlayerData[];
   error?: string;
+};
+
+type PlayerData = {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  color: string;
 };
 
 function WaterGame() {
   const containerRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<HTMLDivElement>(null);
   const phaserGameRef = useRef<import("phaser").Game | null>(null);
+  const sceneRef = useRef<import("phaser").Scene | null>(null);
   const [players, setPlayers] = useState<string[]>([]);
+  const [playerData, setPlayerData] = useState<PlayerData[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -45,7 +55,9 @@ function WaterGame() {
       try {
         const message: WebSocketMessage = JSON.parse(event.data);
         if (message.type === 'playerList' && message.players) {
-          setPlayers(message.players);
+          setPlayers(message.players as string[]);
+        } else if (message.type === 'gameState' && message.players) {
+          setPlayerData(message.players as PlayerData[]);
         }
       } catch {
         console.error('Invalid message from server');
@@ -75,6 +87,67 @@ function WaterGame() {
       if (!gameRef.current || phaserGameRef.current || !isMounted) return;
       const { Game, AUTO, Scale } = phaser;
       const { width, height } = getMax16by9Size();
+      
+      // Create a custom scene class
+      class GameScene extends phaser.Scene {
+        private jetskis: Map<string, { rectangle: any; text: any }> = new Map();
+        
+        constructor() {
+          super({ key: 'GameScene' });
+        }
+        
+        create() {
+          // Store scene reference for updates
+          sceneRef.current = this;
+          
+          // Initial jetski rendering will be handled by the useEffect that watches playerData
+        }
+        
+        updateJetskis(players: PlayerData[]) {
+          // Clear existing jetskis
+          this.jetskis.forEach(({ rectangle, text }) => {
+            rectangle.destroy();
+            text.destroy();
+          });
+          this.jetskis.clear();
+          
+          // Create new jetskis
+          players.forEach(player => {
+            this.createJetski(player);
+          });
+        }
+        
+        createJetski(player: PlayerData) {
+          const { width, height } = this.scale;
+          const jetskiWidth = width / 40; // 1/40th of screen width
+          const jetskiHeight = jetskiWidth * 0.6; // Aspect ratio for jetski
+          
+          // Convert normalized coordinates (0-1) to screen coordinates
+          const x = player.x * width;
+          const y = player.y * height;
+          
+          // Convert hex color string to number
+          const colorNumber = parseInt(player.color.replace('#', ''), 16);
+          
+          // Create jetski rectangle
+          const rectangle = this.add.rectangle(x, y, jetskiWidth, jetskiHeight, colorNumber);
+          rectangle.setStrokeStyle(2, 0x000000); // Black border
+          
+          // Create name tag above jetski
+          const text = this.add.text(x, y - jetskiHeight/2 - 20, player.name, {
+            fontSize: '16px',
+            color: '#ffffff',
+            stroke: '#000000',
+            strokeThickness: 2,
+            fontFamily: 'Arial'
+          });
+          text.setOrigin(0.5);
+          
+          // Store references
+          this.jetskis.set(player.id, { rectangle, text });
+        }
+      }
+      
       const config = {
         type: AUTO,
         width,
@@ -85,11 +158,7 @@ function WaterGame() {
           autoCenter: Scale.CENTER_BOTH,
         },
         backgroundColor: '#2196f3', // blue water
-        scene: {
-          create() {
-            // Water area only for now
-          },
-        },
+        scene: GameScene,
       };
       gameInstance = new Game(config);
       phaserGameRef.current = gameInstance;
@@ -113,6 +182,16 @@ function WaterGame() {
       }
     };
   }, []);
+
+  // Update jetskis when player data changes
+  useEffect(() => {
+    if (sceneRef.current && playerData.length > 0) {
+      const scene = sceneRef.current as any;
+      if (scene.updateJetskis) {
+        scene.updateJetskis(playerData);
+      }
+    }
+  }, [playerData]);
 
   // The outer container fills the viewport and centers the 16:9 game area
   return (

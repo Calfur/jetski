@@ -1,7 +1,7 @@
 import { createServer } from 'http';
 import { parse } from 'url';
 import next from 'next';
-import { WebSocketServer, WebSocket, RawData } from 'ws';
+import { WebSocketServer, WebSocket } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 
 const dev = process.env.NODE_ENV !== 'production';
@@ -17,7 +17,20 @@ type Player = {
   id: string;
   name: string;
   lastActive: number;
+  x: number;
+  y: number;
+  color: string;
 };
+
+// Color palette for jetskis - 30 colors with good contrast against blue water
+const JETSKI_COLORS = [
+  '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+  '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+  '#F8C471', '#82E0AA', '#F1948A', '#85C1E9', '#D7BDE2',
+  '#F9E79F', '#A9DFBF', '#F5B7B1', '#AED6F1', '#D2B4DE',
+  '#FAD7A0', '#ABEBC6', '#F1948A', '#85C1E9', '#D7BDE2',
+  '#F9E79F', '#A9DFBF', '#F5B7B1', '#AED6F1', '#D2B4DE'
+];
 
 // WebSocket message types
 type WebSocketMessage = {
@@ -29,6 +42,19 @@ type WebSocketResponse = {
   type: 'playerList' | 'error';
   players?: string[];
   error?: string;
+};
+
+type PlayerData = {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  color: string;
+};
+
+type GameStateResponse = {
+  type: 'gameState';
+  players: PlayerData[];
 };
 
 // Player management
@@ -62,6 +88,31 @@ app.prepare().then(() => {
     });
   }
 
+  function broadcastGameState(): void {
+    const playerData: PlayerData[] = players.map((p) => ({
+      id: p.id,
+      name: p.name,
+      x: p.x,
+      y: p.y,
+      color: p.color
+    }));
+    const msg: GameStateResponse = { type: 'gameState', players: playerData };
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(msg));
+      }
+    });
+  }
+
+  function generateRandomPosition(): { x: number; y: number } {
+    // Generate position within the 16:9 game area
+    // Using a conservative range to keep jetskis away from edges
+    const margin = 0.1; // 10% margin from edges
+    const x = margin + Math.random() * (1 - 2 * margin);
+    const y = margin + Math.random() * (1 - 2 * margin);
+    return { x, y };
+  }
+
   function removeInactivePlayers(): void {
     const now = Date.now();
     let changed = false;
@@ -71,7 +122,10 @@ app.prepare().then(() => {
         changed = true;
       }
     }
-    if (changed) broadcastPlayerList();
+    if (changed) {
+      broadcastPlayerList();
+      broadcastGameState();
+    }
   }
 
   // Set up WebSocket connection handling
@@ -79,7 +133,7 @@ app.prepare().then(() => {
     console.log('WebSocket client connected');
     let playerId: string | null = null;
 
-    ws.on('message', (data: RawData) => {
+    ws.on('message', (data: Buffer | string) => {
       try {
         const msg: WebSocketMessage = JSON.parse(data.toString());
         if (msg.type === 'join') {
@@ -97,9 +151,18 @@ app.prepare().then(() => {
             return;
           }
           playerId = uuidv4();
-          players.push({ id: playerId, name, lastActive: Date.now() });
+          const position = generateRandomPosition();
+          players.push({ 
+            id: playerId, 
+            name, 
+            lastActive: Date.now(), 
+            x: position.x, 
+            y: position.y, 
+            color: JETSKI_COLORS[Math.floor(Math.random() * JETSKI_COLORS.length)] 
+          });
           console.log(`Player joined: ${name}`);
           broadcastPlayerList();
+          broadcastGameState();
         } else if (msg.type === 'heartbeat') {
           if (playerId) {
             const p = players.find((p) => p.id === playerId);
@@ -125,6 +188,7 @@ app.prepare().then(() => {
           players.splice(idx, 1);
           console.log(`Player left: ${playerName}`);
           broadcastPlayerList();
+          broadcastGameState();
         }
       }
     });
@@ -139,6 +203,19 @@ app.prepare().then(() => {
       players: players.map((p) => p.name) 
     };
     ws.send(JSON.stringify(initialResponse));
+    
+    // Send initial game state
+    const initialGameState: GameStateResponse = {
+      type: 'gameState',
+      players: players.map((p) => ({
+        id: p.id,
+        name: p.name,
+        x: p.x,
+        y: p.y,
+        color: p.color
+      }))
+    };
+    ws.send(JSON.stringify(initialGameState));
   });
 
   // Start inactivity cleanup
