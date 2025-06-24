@@ -65,11 +65,11 @@
 - [x] Setup basic game view with Phaser (water area)
 - [x] Multiplayer ability, joining with devices as game controllers adds player names to game view
 - [x] Add player jetski model (colored rectangle with name tag)
-- [ ] Implement basic player movement (left/right controls)
+- [x] Implement basic player movement (left/right controls)
 - [ ] Create collectible items (random spawn, limited amount)
 - [ ] Implement collision detection for collectibles
 - [ ] Add score tracking and display scoreboard
-- [ ] Implement jetski physics (drifting, momentum)
+- [x] Implement jetski physics (drifting, momentum)
 - [ ] Add Online logo obstacle
 - [ ] Implement player-player collision detection
 - [ ] Add player spawn system (random position outside obstacles)

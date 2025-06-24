@@ -185,8 +185,7 @@ export default function GameController() {
       <div className="min-h-screen bg-gray-900 flex flex-col">
         {/* Player info header */}
         <div className="bg-gray-800 p-4 text-center">
-          <h1 className="text-2xl font-bold text-white">Game Controller</h1>
-          <p className="text-green-400">Playing as: {playerName}</p>
+          <p className="text-white">{playerName}</p>
           {playerData && (
             <div 
               className="inline-block w-4 h-4 rounded mt-2"

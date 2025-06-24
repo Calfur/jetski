@@ -30,8 +30,8 @@ Vibe Code Challenge For All - Online.ch Palermo
 > 23.06.2025 2h
 > Make websocket available on the hosted version by modifying the deployment
 
-> 24.06.2025 20:30 - 
-> Spawn jetskis on the water
+> 24.06.2025 4h
+> Spawn jetskis on the water, player movements, physics
 
 ## My rules
 
