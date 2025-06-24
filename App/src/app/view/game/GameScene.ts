@@ -37,7 +37,7 @@ export function createJetskiManager() {
 
 function createJetski(scene: import("phaser").Scene, player: PlayerData, jetskis: Map<string, JetskiObject>) {
   const { width, height } = scene.scale;
-  const jetskiWidth = width / 60; // 1/60th of screen width
+  const jetskiWidth = width / 90; // Reduced from 1/60th of screen width
   const jetskiHeight = jetskiWidth * 0.6; // Aspect ratio for jetski
   
   // Convert normalized coordinates (0-1) to screen coordinates

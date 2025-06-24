@@ -31,7 +31,8 @@ type Player = {
   // Physics properties
   maxSpeed: number; // units per second
   acceleration: number; // units per second^2
-  deceleration: number; // units per second^2
+  deceleration: number; // constant deceleration
+  dragFactor: number; // speed-dependent deceleration
   maxTurnSpeed: number; // radians per second
   rotationalAcceleration: number; // radians per second^2
   driftFactor: number; // 0-1, how much velocity follows rotation. 1 = no drift.
@@ -186,8 +187,9 @@ app.prepare().then(() => {
       // 3. Handle linear acceleration/deceleration
       if (controls.left || controls.right) { // accelerating
         player.speed = Math.min(player.speed + acceleration * deltaTime, maxSpeed);
-      } else { // decelerating
-        player.speed = Math.max(player.speed - deceleration * deltaTime, 0);
+      } else { // decelerating with drag
+        const currentDeceleration = deceleration + (player.speed * player.dragFactor);
+        player.speed = Math.max(player.speed - currentDeceleration * deltaTime, 0);
       }
 
       // 4. Calculate target velocity based on rotation and speed
@@ -248,12 +250,13 @@ app.prepare().then(() => {
             velocityX: 0,
             velocityY: 0,
             rotationalVelocity: 0,
-            maxSpeed: 0.2, // a full screen width in 5 seconds
-            acceleration: 0.1, // reaches max speed in 2 seconds
-            deceleration: 0.05, // stops from max speed in 4 seconds
-            maxTurnSpeed: Math.PI / 2, // 90 deg/s
-            rotationalAcceleration: Math.PI, // 1s to reach max turn speed
-            driftFactor: 0.95, // Lower means more drift
+            maxSpeed: 0.1, // a full screen width in 10 seconds
+            acceleration: 0.5, // reaches max speed in 2 seconds
+            deceleration: 0.06, // constant deceleration
+            dragFactor: 0.2, // slows down faster at high speed
+            maxTurnSpeed: Math.PI / 3, // 60 deg/s
+            rotationalAcceleration: Math.PI / 1.5, // 0.5s to reach max turn speed
+            driftFactor: 0.2, // Lower means more drift
             controls: { left: false, right: false },
           });
           console.log(`Player joined: ${name}`);
