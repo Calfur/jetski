@@ -62,7 +62,7 @@ export default function GameController() {
     return () => {
       ws.close();
     };
-  }, []);
+  }, [isLoading]);
 
   const handleJoin = () => {
     if (!playerName.trim()) {

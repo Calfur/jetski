@@ -2,6 +2,7 @@
   "name": "jetski",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "FAST_REFRESH=false ts-node server.ts",
     "build": "next build && npm run build:server",
