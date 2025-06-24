@@ -19,17 +19,17 @@ export function createJetskiManager() {
 
       // Add or update jetskis for current players
       for (const player of players) {
-        if (!jetskis.has(player.id)) {
-          createJetski(scene, player, jetskis);
-        } else {
-          // Optional: Update existing jetski properties if they can change
-          const jetski = jetskis.get(player.id)!;
-          const { width, height } = scene.scale;
-          jetski.rectangle.x = player.x * width;
-          jetski.rectangle.y = player.y * height;
-          jetski.text.x = player.x * width;
-          jetski.text.y = player.y * height - (jetski.rectangle.height / 2) - 20;
+        // Always recreate jetskis to ensure proper scaling of all properties
+        if (jetskis.has(player.id)) {
+          // Destroy existing jetski before recreating
+          const existingJetski = jetskis.get(player.id)!;
+          existingJetski.rectangle.destroy();
+          existingJetski.text.destroy();
+          jetskis.delete(player.id);
         }
+        
+        // Create new jetski with current dimensions
+        createJetski(scene, player, jetskis);
       }
     }
   };
@@ -49,11 +49,20 @@ function createJetski(scene: import("phaser").Scene, player: PlayerData, jetskis
   
   // Create jetski rectangle
   const rectangle = scene.add.rectangle(x, y, jetskiWidth, jetskiHeight, colorNumber);
-  rectangle.setStrokeStyle(2, 0x000000); // Black border
+  
+  // Set border stroke width to scale with jetski size
+  const strokeWidth = Math.max(1, Math.min(4, width / 640)); // Scale stroke between 1-4px
+  rectangle.setStrokeStyle(strokeWidth, 0x000000); // Black border
+  
+  // Calculate dynamic font size based on view size
+  const fontSize = Math.max(12, Math.min(24, width / 80)); // Scale between 12px and 24px based on screen width
+  
+  // Use font size for spacing between text and jetski
+  const textSpacing = fontSize;
   
   // Create name tag above jetski
-  const text = scene.add.text(x, y - jetskiHeight/2 - 20, player.name, {
-    fontSize: '16px',
+  const text = scene.add.text(x, y - jetskiHeight/2 - textSpacing, player.name, {
+    fontSize: `${fontSize}px`,
     color: '#ffffff',
     stroke: '#000000',
     strokeThickness: 2,

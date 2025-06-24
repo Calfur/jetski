@@ -75,11 +75,16 @@ export function WaterGame({ playerData }: WaterGameProps) {
       gameInstance = new Game(config);
       phaserGameRef.current = gameInstance;
 
-      // Resize handler to keep 16:9 aspect ratio
+      // Resize handler to keep 16:9 aspect ratio and update jetskis
       resizeHandler = () => {
         if (!gameInstance || !gameInstance.scale) return;
         const { width, height } = getMax16by9Size();
         gameInstance.scale.resize(width, height);
+        
+        // Update jetskis after resize to maintain proper positioning and sizing
+        if (sceneRef.current && jetskiManagerRef.current) {
+          jetskiManagerRef.current.updateJetskis(sceneRef.current, playerDataRef.current);
+        }
       };
       window.addEventListener('resize', resizeHandler);
     })();

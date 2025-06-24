@@ -135,12 +135,16 @@ export default function GameController() {
               id="playerName"
               type="text"
               value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onChange={(e) => setPlayerName(e.target.value.slice(0, 20))}
+              onKeyDown={handleKeyPress}
               placeholder="Your name"
+              maxLength={20}
               className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               disabled={isLoading}
             />
+            <div className="text-xs text-gray-400 mt-1 text-right">
+              {playerName.length}/20 characters
+            </div>
           </div>
 
           {error && (
