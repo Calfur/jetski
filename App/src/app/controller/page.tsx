@@ -65,12 +65,23 @@ export default function GameController() {
       setIsLoading(false);
     } else if (lastMessage.type === 'playerList') {
       console.log('Current players:', lastMessage.players);
-      if (isLoading) {
+      // Check if current player name is in the player list to confirm successful join
+      if (lastMessage.players && lastMessage.players.includes(playerName)) {
         setIsJoined(true);
         setIsLoading(false);
+        setError('');
       }
     }
-  }, [lastMessage, isLoading]);
+  }, [lastMessage, playerName]);
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newName = e.target.value.slice(0, 20);
+    setPlayerName(newName);
+    // Clear error when user starts typing a new name
+    if (error) {
+      setError('');
+    }
+  };
 
   const handleJoin = () => {
     if (!playerName.trim()) {
@@ -135,7 +146,7 @@ export default function GameController() {
               id="playerName"
               type="text"
               value={playerName}
-              onChange={(e) => setPlayerName(e.target.value.slice(0, 20))}
+              onChange={handleNameChange}
               onKeyDown={handleKeyPress}
               placeholder="Your name"
               maxLength={20}
