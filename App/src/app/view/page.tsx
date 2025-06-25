@@ -1,13 +1,19 @@
 "use client";
 import { useWebSocket } from "./hooks/useWebSocket";
 import { WaterGame } from "./components/WaterGame";
+import { ConnectionOverlay } from "./components/ConnectionOverlay";
 
 function GameView() {
-  const { playerData, collectibleData } = useWebSocket();
+  const { playerData, collectibleData, isConnected, isConnecting, reconnect } = useWebSocket();
 
   return (
     <div className="w-screen h-screen flex items-center justify-center bg-black overflow-hidden">
       <WaterGame playerData={playerData} collectibleData={collectibleData} />
+      <ConnectionOverlay 
+        isConnected={isConnected} 
+        isConnecting={isConnecting} 
+        onReconnect={reconnect} 
+      />
     </div>
   );
 }

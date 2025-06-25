@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { WebSocketMessage, PlayerData, CollectibleData } from "../types";
 
 export function useWebSocket() {
@@ -6,9 +6,20 @@ export function useWebSocket() {
   const [playerData, setPlayerData] = useState<PlayerData[]>([]);
   const [collectibleData, setCollectibleData] = useState<CollectibleData[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isConnectingRef = useRef(false);
+  const wasConnectedRef = useRef(false);
 
-  useEffect(() => {
+  const connect = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN || isConnectingRef.current) {
+      return;
+    }
+
+    isConnectingRef.current = true;
+    setIsConnecting(true);
+    
     // Connect to WebSocket server - use dynamic URL for production
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
@@ -18,6 +29,16 @@ export function useWebSocket() {
 
     ws.onopen = () => {
       setIsConnected(true);
+      setIsConnecting(false);
+      isConnectingRef.current = false;
+      console.log('WebSocket connected');
+      
+      // If this is a reconnection, request current game state
+      if (wasConnectedRef.current) {
+        console.log('Requesting current game state after reconnection');
+        ws.send(JSON.stringify({ type: 'getGameState' }));
+      }
+      wasConnectedRef.current = true;
     };
 
     ws.onmessage = (event) => {
@@ -39,22 +60,57 @@ export function useWebSocket() {
     ws.onerror = () => {
       console.error('WebSocket connection error');
       setIsConnected(false);
+      setIsConnecting(false);
+      isConnectingRef.current = false;
     };
 
     ws.onclose = () => {
+      console.log('WebSocket disconnected');
       setIsConnected(false);
-    };
-
-    return () => {
-      ws.close();
+      setIsConnecting(false);
+      isConnectingRef.current = false;
+      
+      // Clear any existing reconnect timeout
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
     };
   }, []);
+
+  const reconnect = useCallback(() => {
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
+    
+    // Clear any existing reconnect timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+    
+    // Attempt to reconnect immediately
+    connect();
+  }, [connect]);
+
+  useEffect(() => {
+    connect();
+
+    return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [connect]);
 
   return {
     players,
     playerData,
     collectibleData,
     isConnected,
+    isConnecting,
+    reconnect,
     wsRef
   };
 } 
