@@ -62,6 +62,8 @@ export default function GameController() {
     ws.onclose = () => {
       setIsConnected(false);
       setIsJoined(false);
+      // Show retry button when connection is lost
+      setShowRetry(true);
     };
   }, []);
 
@@ -70,6 +72,9 @@ export default function GameController() {
     if (wsRef.current) {
       wsRef.current.close();
     }
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+    }
     setIsConnected(false);
     setIsJoined(false);
     setError('');
@@ -77,6 +82,11 @@ export default function GameController() {
     setPlayerData(null);
     setShowRetry(false);
     connectWebSocket();
+    
+    // Set up new timeout to show retry button after 3 seconds if connection fails
+    retryTimeoutRef.current = setTimeout(() => {
+      setShowRetry(true);
+    }, 3000);
   }, [connectWebSocket]);
 
   // Effect for WebSocket connection - runs once
