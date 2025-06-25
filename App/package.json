@@ -1,8 +1,12 @@
 {
   "name": "jetski",
   "version": "0.1.0",
-  "private": true,
+  "description": "A multiplayer jetski game with real-time controls and physics",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/calfur/jetski.git"
+  },
   "scripts": {
     "dev": "FAST_REFRESH=false ts-node server.ts",
     "build": "next build && npm run build:server",

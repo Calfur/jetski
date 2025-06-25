@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 type WebSocketMessage = {
   type: 'playerList' | 'error' | 'gameState';
@@ -132,7 +132,7 @@ export default function GameController() {
   };
 
   // Function to send control updates
-  const sendControls = () => {
+  const sendControls = useCallback(() => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
         type: 'controls',
@@ -142,7 +142,7 @@ export default function GameController() {
         }
       }));
     }
-  };
+  }, [leftPressed, rightPressed]);
 
   // Effect to send controls at 20Hz when joined
   useEffect(() => {
@@ -161,7 +161,7 @@ export default function GameController() {
         controlIntervalRef.current = null;
       }
     };
-  }, [isJoined, leftPressed, rightPressed]);
+  }, [isJoined, leftPressed, rightPressed, sendControls]);
 
   // Control button handlers
   const handleLeftPress = () => setLeftPressed(true);
