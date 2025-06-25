@@ -30,6 +30,7 @@ const PHYSICS = {
   dragFactor: 0.2, // slows down faster at high speed
   maxTurnSpeed: Math.PI / 3, // 60 deg/s
   driftFactor: 0.1, // Lower means more drift
+  aspectRatio: 16 / 9, // 16:9 aspect ratio for coordinate scaling
 } as const;
 
 // Player type
@@ -249,7 +250,7 @@ app.prepare().then(() => {
       // 3. Calculate target velocity based on rotation and speed
       const movementAngle = player.rotation - Math.PI / 2; // Adjust for upward-facing SVG
       const targetVelocityX = Math.cos(movementAngle) * player.speed;
-      const targetVelocityY = Math.sin(movementAngle) * player.speed;
+      const targetVelocityY = Math.sin(movementAngle) * player.speed * PHYSICS.aspectRatio; // Scale Y velocity for 16:9 aspect ratio
 
       // 4. Smoothly interpolate current velocity towards target (the drift)
       // driftFactor of 0.01 means very slow drift, 0.1 means moderate drift, 0.5 means fast drift
