@@ -247,12 +247,13 @@ export default function GameController() {
         <div className="flex-1 flex">
           {/* Left button */}
           <button
-            className={`flex-1 flex items-center justify-center text-white text-2xl font-bold transition-all duration-100 select-none ${
-              leftPressed ? 'bg-opacity-80' : 'bg-opacity-60'
-            }`}
+            className="flex-1 flex items-center justify-center text-white text-2xl font-bold transition-all duration-100 select-none"
             style={{ 
-              backgroundColor: playerData?.color || '#3B82F6',
-              opacity: leftPressed ? 0.8 : 0.6
+              backgroundColor: leftPressed 
+                ? playerData?.color 
+                  ? `${playerData.color}CC` // Add 80% opacity for pressed state
+                  : '#2563EB' // Darker blue for pressed state
+                : playerData?.color || '#3B82F6'
             }}
             onTouchStart={handleLeftPress}
             onTouchEnd={handleLeftRelease}
@@ -265,12 +266,13 @@ export default function GameController() {
 
           {/* Right button */}
           <button
-            className={`flex-1 flex items-center justify-center text-white text-2xl font-bold transition-all duration-100 select-none ${
-              rightPressed ? 'bg-opacity-80' : 'bg-opacity-60'
-            }`}
+            className="flex-1 flex items-center justify-center text-white text-2xl font-bold transition-all duration-100 select-none"
             style={{ 
-              backgroundColor: playerData?.color || '#3B82F6',
-              opacity: rightPressed ? 0.8 : 0.6
+              backgroundColor: rightPressed 
+                ? playerData?.color 
+                  ? `${playerData.color}CC` // Add 80% opacity for pressed state
+                  : '#2563EB' // Darker blue for pressed state
+                : playerData?.color || '#3B82F6'
             }}
             onTouchStart={handleRightPress}
             onTouchEnd={handleRightRelease}
