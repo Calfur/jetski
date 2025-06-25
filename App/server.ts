@@ -43,6 +43,7 @@ type Player = {
   color: string;
   rotation: number; // radians
   speed: number; // units per second
+  score: number; // number of ducks collected
   
   // Velocity components
   velocityX: number;
@@ -53,6 +54,14 @@ type Player = {
     left: boolean;
     right: boolean;
   };
+};
+
+// High score entry type
+type HighScore = {
+  name: string;
+  score: number;
+  timestamp: number; // when the score was achieved
+  isActive: boolean; // whether this is an ongoing run
 };
 
 // Collectible type
@@ -87,6 +96,7 @@ type PlayerData = {
   color: string;
   rotation: number;
   speed: number;
+  score: number;
 };
 
 type CollectibleData = {
@@ -102,10 +112,17 @@ type GameStateResponse = {
   collectibles: CollectibleData[];
 };
 
+type ScoreboardResponse = {
+  type: 'scoreboard';
+  highScores: HighScore[];
+};
+
 // Player management
 const players: Player[] = [];
 const collectibles: Collectible[] = [];
+const highScores: HighScore[] = [];
 const MAX_COLLECTIBLES = 5;
+const MAX_HIGH_SCORES = 5;
 
 app.prepare().then(() => {
   const server = createServer(async (req, res) => {
@@ -144,6 +161,7 @@ app.prepare().then(() => {
       color: p.color,
       rotation: p.rotation,
       speed: p.speed,
+      score: p.score,
     }));
     const collectibleData: CollectibleData[] = collectibles.map((c) => ({
       id: c.id,
@@ -152,6 +170,15 @@ app.prepare().then(() => {
       rotation: c.rotation,
     }));
     const msg: GameStateResponse = { type: 'gameState', players: playerData, collectibles: collectibleData };
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(msg));
+      }
+    });
+  }
+
+  function broadcastScoreboard(): void {
+    const msg: ScoreboardResponse = { type: 'scoreboard', highScores };
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify(msg));
@@ -182,6 +209,63 @@ app.prepare().then(() => {
     broadcastGameState();
   }
 
+  function updateHighScores(playerName: string, score: number, isActive: boolean = false): void {
+    // Only include players with a minimum score of 1
+    if (score < 1) {
+      // Remove player from high scores if they have 0 score
+      const existingIndex = highScores.findIndex(hs => hs.name.toLowerCase() === playerName.toLowerCase());
+      if (existingIndex !== -1) {
+        highScores.splice(existingIndex, 1);
+        broadcastScoreboard();
+      }
+      return;
+    }
+    
+    // Find existing entry for this player
+    const existingIndex = highScores.findIndex(hs => hs.name.toLowerCase() === playerName.toLowerCase());
+    
+    if (existingIndex !== -1) {
+      // Update existing entry
+      highScores[existingIndex].score = score;
+      highScores[existingIndex].isActive = isActive;
+      if (!isActive) {
+        highScores[existingIndex].timestamp = Date.now();
+      }
+    } else {
+      // Add new score entry
+      const newScore: HighScore = {
+        name: playerName,
+        score: score,
+        timestamp: isActive ? 0 : Date.now(),
+        isActive: isActive
+      };
+      highScores.push(newScore);
+    }
+    
+    // Sort by score (highest first), then by timestamp (earliest first for ties)
+    highScores.sort((a, b) => {
+      if (b.score !== a.score) {
+        return b.score - a.score;
+      }
+      // For active players, prioritize them in case of ties
+      if (a.isActive !== b.isActive) {
+        return a.isActive ? -1 : 1;
+      }
+      return a.timestamp - b.timestamp;
+    });
+    
+    // Keep only top 5 scores
+    if (highScores.length > MAX_HIGH_SCORES) {
+      highScores.splice(MAX_HIGH_SCORES);
+    }
+    
+    broadcastScoreboard();
+  }
+
+  function updateActivePlayerScore(playerName: string, score: number): void {
+    updateHighScores(playerName, score, true);
+  }
+
   function checkCollectibleCollisions(): void {
     const collisionDistance = 0.02; // 2% of screen size for collision detection
     
@@ -199,7 +283,12 @@ app.prepare().then(() => {
         if (distance < collisionDistance) {
           // Player collected the item
           collectibles.splice(j, 1);
-          console.log(`Player ${player.name} collected item ${collectible.id}`);
+          player.score += 1; // Increment player's score
+          console.log(`Player ${player.name} collected item ${collectible.id}. Score: ${player.score}`);
+          
+          // Update high scores in real-time for active players
+          updateActivePlayerScore(player.name, player.score);
+          
           broadcastGameState();
           break; // Only collect one item per frame
         }
@@ -212,6 +301,11 @@ app.prepare().then(() => {
     let changed = false;
     for (let i = players.length - 1; i >= 0; i--) {
       if (now - players[i].lastActive > 60_000) {
+        const player = players[i];
+        // Update high scores when player becomes inactive (mark as inactive)
+        if (player.score > 0) {
+          updateHighScores(player.name, player.score, false);
+        }
         players.splice(i, 1);
         changed = true;
       }
@@ -297,7 +391,7 @@ app.prepare().then(() => {
           }
           playerId = uuidv4();
           const position = generateRandomPosition();
-          players.push({ 
+          const newPlayer = { 
             id: playerId, 
             name, 
             lastActive: Date.now(), 
@@ -306,10 +400,16 @@ app.prepare().then(() => {
             color: JETSKI_COLORS[Math.floor(Math.random() * JETSKI_COLORS.length)],
             rotation: Math.random() * 2 * Math.PI,
             speed: 0,
+            score: 0, // Initialize score to 0
             velocityX: 0,
             velocityY: 0,
             controls: { left: false, right: false },
-          });
+          };
+          players.push(newPlayer);
+          
+          // Don't add player to high scores until they have at least 1 point
+          // updateActivePlayerScore(name, 0);
+          
           console.log(`Player joined: ${name}`);
           broadcastPlayerList();
           broadcastGameState();
@@ -343,9 +443,13 @@ app.prepare().then(() => {
       if (typeof playerId === 'string') {
         const idx = players.findIndex((p) => p.id === playerId);
         if (idx !== -1) {
-          const playerName = players[idx].name;
+          const player = players[idx];
+          // Update high scores when player disconnects (mark as inactive)
+          if (player.score > 0) {
+            updateHighScores(player.name, player.score, false);
+          }
           players.splice(idx, 1);
-          console.log(`Player left: ${playerName}`);
+          console.log(`Player left: ${player.name}`);
           broadcastPlayerList();
           broadcastGameState();
         }
@@ -374,6 +478,7 @@ app.prepare().then(() => {
         color: p.color,
         rotation: p.rotation,
         speed: p.speed,
+        score: p.score,
       })),
       collectibles: collectibles.map((c) => ({
         id: c.id,
@@ -383,6 +488,13 @@ app.prepare().then(() => {
       }))
     };
     ws.send(JSON.stringify(initialGameState));
+    
+    // Send initial scoreboard
+    const initialScoreboard: ScoreboardResponse = {
+      type: 'scoreboard',
+      highScores: highScores
+    };
+    ws.send(JSON.stringify(initialScoreboard));
   });
 
   // Start inactivity cleanup

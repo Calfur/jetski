@@ -1,7 +1,8 @@
 export type WebSocketMessage = {
-  type: 'playerList' | 'error' | 'gameState';
+  type: 'playerList' | 'error' | 'gameState' | 'scoreboard';
   players?: string[] | PlayerData[];
   collectibles?: CollectibleData[];
+  highScores?: HighScore[];
   error?: string;
 };
 
@@ -13,6 +14,7 @@ export type PlayerData = {
   y: number;
   rotation: number;
   speed: number;
+  score: number;
 };
 
 export type CollectibleData = {
@@ -20,6 +22,13 @@ export type CollectibleData = {
   x: number;
   y: number;
   rotation: number;
+};
+
+export type HighScore = {
+  name: string;
+  score: number;
+  timestamp: number;
+  isActive: boolean;
 };
 
 export type JetskiObject = {

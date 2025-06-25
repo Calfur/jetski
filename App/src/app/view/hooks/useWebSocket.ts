@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { WebSocketMessage, PlayerData, CollectibleData } from "../types";
+import { WebSocketMessage, PlayerData, CollectibleData, HighScore } from "../types";
 
 export function useWebSocket() {
   const [players, setPlayers] = useState<string[]>([]);
   const [playerData, setPlayerData] = useState<PlayerData[]>([]);
   const [collectibleData, setCollectibleData] = useState<CollectibleData[]>([]);
+  const [highScores, setHighScores] = useState<HighScore[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -51,6 +52,8 @@ export function useWebSocket() {
           if (message.collectibles) {
             setCollectibleData(message.collectibles);
           }
+        } else if (message.type === 'scoreboard' && message.highScores) {
+          setHighScores(message.highScores);
         }
       } catch {
         console.error('Invalid message from server');
@@ -108,6 +111,7 @@ export function useWebSocket() {
     players,
     playerData,
     collectibleData,
+    highScores,
     isConnected,
     isConnecting,
     reconnect,
