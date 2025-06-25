@@ -1,4 +1,4 @@
-import { PlayerData, JetskiObject, CollectibleData, CollectibleObject } from "../types";
+import { PlayerData, JetskiObject, CollectibleData, CollectibleObject, ExplosionData, ExplosionObject } from "../types";
 
 // Export the jetski management logic that can be used in the scene
 export function createJetskiManager() {
@@ -68,6 +68,33 @@ export function createCollectibleManager() {
   };
 }
 
+// Export the explosion management logic
+export function createExplosionManager() {
+  const explosions = new Map<string, ExplosionObject>();
+  
+  return {
+    updateExplosions(scene: import("phaser").Scene, explosionData: ExplosionData[]) {
+      const currentExplosionIds = new Set(explosionData.map(e => e.id));
+
+      // Remove explosions that are no longer present
+      for (const [id, explosion] of explosions.entries()) {
+        if (!currentExplosionIds.has(id)) {
+          explosion.circle.destroy();
+          explosion.tween.stop();
+          explosions.delete(id);
+        }
+      }
+
+      // Add new explosions
+      for (const explosion of explosionData) {
+        if (!explosions.has(explosion.id)) {
+          createExplosion(scene, explosion, explosions);
+        }
+      }
+    }
+  };
+}
+
 function createJetski(scene: import("phaser").Scene, player: PlayerData, jetskis: Map<string, JetskiObject>) {
   const { width, height } = scene.scale;
   const jetskiWidth = width / 120;
@@ -123,4 +150,66 @@ function createCollectible(scene: import("phaser").Scene, collectible: Collectib
   
   // Store reference
   collectibles.set(collectible.id, { image });
+}
+
+function createExplosion(scene: import("phaser").Scene, explosion: ExplosionData, explosions: Map<string, ExplosionObject>) {
+  const { width, height } = scene.scale;
+  
+  // Convert normalized coordinates (0-1) to screen coordinates
+  const x = explosion.x * width;
+  const y = explosion.y * height;
+  
+  // Create explosion graphics
+  const circle = scene.add.graphics();
+  circle.setPosition(x, y);
+  
+  // Calculate jetski size for reference
+  const jetskiWidth = width / 120;
+  
+  // Initial explosion size - about 2x jetski width
+  const initialSize = jetskiWidth * 2;
+  // Final explosion size - about 4x jetski width
+  const maxSize = jetskiWidth * 4;
+  
+  // Draw initial explosion circle
+  circle.fillStyle(0xff0000, 1); // Red
+  circle.fillCircle(0, 0, initialSize);
+  
+  // Add orange ring
+  circle.lineStyle(width / 400, 0xff8c00, 1); // Orange
+  circle.strokeCircle(0, 0, initialSize);
+  
+  // Create explosion animation
+  const tween = scene.tweens.add({
+    targets: circle,
+    scaleX: maxSize / initialSize,
+    scaleY: maxSize / initialSize,
+    alpha: 0,
+    duration: 2000, // 2 seconds
+    ease: 'Power2',
+    onUpdate: function() {
+      // Update the circle drawing during animation
+      circle.clear();
+      const currentSize = initialSize * (circle.scaleX || 1);
+      const alpha = circle.alpha || 1;
+      
+      // Red center
+      circle.fillStyle(0xff0000, alpha);
+      circle.fillCircle(0, 0, currentSize);
+      
+      // Orange ring
+      circle.lineStyle(width / 400, 0xff8c00, alpha);
+      circle.strokeCircle(0, 0, currentSize);
+      
+      // Add some inner orange glow
+      circle.fillStyle(0xff8c00, alpha * 0.3);
+      circle.fillCircle(0, 0, currentSize * 0.7);
+    },
+    onComplete: function() {
+      circle.destroy();
+    }
+  });
+  
+  // Store references
+  explosions.set(explosion.id, { circle, tween });
 } 

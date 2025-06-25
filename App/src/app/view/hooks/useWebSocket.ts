@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { WebSocketMessage, PlayerData, CollectibleData, HighScore } from "../types";
+import { WebSocketMessage, PlayerData, CollectibleData, ExplosionData, HighScore } from "../types";
 
 export function useWebSocket() {
   const [players, setPlayers] = useState<string[]>([]);
   const [playerData, setPlayerData] = useState<PlayerData[]>([]);
   const [collectibleData, setCollectibleData] = useState<CollectibleData[]>([]);
+  const [explosionData, setExplosionData] = useState<ExplosionData[]>([]);
   const [highScores, setHighScores] = useState<HighScore[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -51,6 +52,9 @@ export function useWebSocket() {
           setPlayerData(message.players as PlayerData[]);
           if (message.collectibles) {
             setCollectibleData(message.collectibles);
+          }
+          if (message.explosions) {
+            setExplosionData(message.explosions);
           }
         } else if (message.type === 'scoreboard' && message.highScores) {
           setHighScores(message.highScores);
@@ -111,6 +115,7 @@ export function useWebSocket() {
     players,
     playerData,
     collectibleData,
+    explosionData,
     highScores,
     isConnected,
     isConnecting,

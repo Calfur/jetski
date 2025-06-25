@@ -3,9 +3,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 type WebSocketMessage = {
-  type: 'playerList' | 'error' | 'gameState';
+  type: 'playerList' | 'error' | 'gameState' | 'collision';
   players?: string[] | PlayerData[];
   error?: string;
+  collisionData?: {
+    player1: string;
+    player2: string;
+    player1Score: number;
+    player2Score: number;
+  };
 };
 
 type PlayerData = {
@@ -21,6 +27,13 @@ export default function GameController() {
   const [playerName, setPlayerName] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [isJoined, setIsJoined] = useState(false);
+  const [isGameOver, setIsGameOver] = useState(false);
+  const [collisionData, setCollisionData] = useState<{
+    player1: string;
+    player2: string;
+    player1Score: number;
+    player2Score: number;
+  } | null>(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
@@ -123,8 +136,10 @@ export default function GameController() {
       if (lastMessage.players && Array.isArray(lastMessage.players) && 
           lastMessage.players.some(p => typeof p === 'string' && p === playerName)) {
         setIsJoined(true);
+        setIsGameOver(false);
         setIsLoading(false);
         setError('');
+        setCollisionData(null);
       }
     } else if (lastMessage.type === 'gameState') {
       // Find current player in game state
@@ -132,10 +147,25 @@ export default function GameController() {
         const currentPlayer = lastMessage.players.find(p => typeof p === 'object' && p.name === playerName);
         if (currentPlayer && typeof currentPlayer === 'object') {
           setPlayerData(currentPlayer as PlayerData);
+        } else {
+          // Player not found in game state - they might have died
+          if (isJoined && !isGameOver) {
+            setIsGameOver(true);
+            // Try to get collision data from the message
+            if (lastMessage.collisionData) {
+              setCollisionData(lastMessage.collisionData);
+            }
+          }
         }
       }
+    } else if (lastMessage.type === 'collision') {
+      if (lastMessage.collisionData) {
+        setIsGameOver(true);
+        setCollisionData(lastMessage.collisionData);
+        setIsJoined(false);
+      }
     }
-  }, [lastMessage, playerName]);
+  }, [lastMessage, playerName, isJoined, isGameOver]);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newName = e.target.value.slice(0, 20);
@@ -210,6 +240,29 @@ export default function GameController() {
   const handleRightPress = () => setRightPressed(true);
   const handleRightRelease = () => setRightPressed(false);
 
+  const handleJoinAgain = () => {
+    setIsGameOver(false);
+    setCollisionData(null);
+    setPlayerData(null);
+    setIsJoined(false);
+    setLeftPressed(false);
+    setRightPressed(false);
+    
+    // Clear any existing control interval
+    if (controlIntervalRef.current) {
+      clearInterval(controlIntervalRef.current);
+      controlIntervalRef.current = null;
+    }
+    
+    // Rejoin with the same name
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'join',
+        name: playerName.trim()
+      }));
+    }
+  };
+
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -224,6 +277,40 @@ export default function GameController() {
               Retry
             </button>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  if (isGameOver) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-gray-800 rounded-lg p-6 text-center">
+            <h1 className="text-3xl font-bold text-red-500 mb-4">💥 GAME OVER 💥</h1>
+            
+            {collisionData && (
+              <div className="mb-6">
+                <p className="text-white text-lg mb-2">
+                  You crashed with <span className="font-bold text-yellow-400">{collisionData.player2}</span>!
+                </p>
+                <div className="bg-gray-700 rounded-lg p-4 mb-4">
+                  <p className="text-gray-300 text-sm mb-2">Final Scores:</p>
+                  <div className="flex justify-between text-white">
+                    <span>You ({collisionData.player1}): <span className="font-bold text-green-400">{collisionData.player1Score}</span></span>
+                    <span>{collisionData.player2}: <span className="font-bold text-green-400">{collisionData.player2Score}</span></span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <button
+              onClick={handleJoinAgain}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200"
+            >
+              Join Again
+            </button>
+          </div>
         </div>
       </div>
     );

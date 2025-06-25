@@ -70,10 +70,11 @@
 - [x] Implement collision detection for collectibles
 - [x] Add score tracking and display scoreboard
 - [x] Implement jetski physics (drifting, momentum)
+- [x] Implement player-player collision detection
+- [x] Add explosion effects on collisions (big red and orange circles)
+- [x] Add game over screen on controller with collision info and "Join Again" button
 - [ ] Add Online logo obstacle
-- [ ] Implement player-player collision detection
-- [ ] Add player spawn system (random position outside obstacles)
+- [ ] Implement player spawn system (random position outside obstacles)
 - [ ] Add death handling (respawn, score reset)
-- [ ] Add explosion effects on collisions
 - [ ] Polish game view (water effects, jetskis, UX)
 - [ ] Add game instructions/help

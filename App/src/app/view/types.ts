@@ -2,6 +2,7 @@ export type WebSocketMessage = {
   type: 'playerList' | 'error' | 'gameState' | 'scoreboard';
   players?: string[] | PlayerData[];
   collectibles?: CollectibleData[];
+  explosions?: ExplosionData[];
   highScores?: HighScore[];
   error?: string;
 };
@@ -31,6 +32,13 @@ export type HighScore = {
   isActive: boolean;
 };
 
+export type ExplosionData = {
+  id: string;
+  x: number;
+  y: number;
+  timestamp: number;
+};
+
 export type JetskiObject = {
   image: import("phaser").GameObjects.Image;
   text: import("phaser").GameObjects.Text;
@@ -38,4 +46,9 @@ export type JetskiObject = {
 
 export type CollectibleObject = {
   image: import("phaser").GameObjects.Image;
+};
+
+export type ExplosionObject = {
+  circle: import("phaser").GameObjects.Graphics;
+  tween: import("phaser").Tweens.Tween;
 }; 

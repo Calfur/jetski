@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useRef } from "react";
-import { PlayerData, CollectibleData } from "../types";
-import { createJetskiManager, createCollectibleManager } from "../game/GameScene";
+import { PlayerData, CollectibleData, ExplosionData } from "../types";
+import { createJetskiManager, createCollectibleManager, createExplosionManager } from "../game/GameScene";
 
 interface WaterGameProps {
   playerData: PlayerData[];
   collectibleData: CollectibleData[];
+  explosionData: ExplosionData[];
 }
 
 // Calculate the largest 16:9 size that fits in the viewport
@@ -22,16 +23,19 @@ function getMax16by9Size() {
   return { width, height };
 }
 
-export function WaterGame({ playerData, collectibleData }: WaterGameProps) {
+export function WaterGame({ playerData, collectibleData, explosionData }: WaterGameProps) {
   const gameRef = useRef<HTMLDivElement>(null);
   const phaserGameRef = useRef<import("phaser").Game | null>(null);
   const sceneRef = useRef<import("phaser").Scene | null>(null);
   const jetskiManagerRef = useRef<ReturnType<typeof createJetskiManager> | null>(null);
   const collectibleManagerRef = useRef<ReturnType<typeof createCollectibleManager> | null>(null);
+  const explosionManagerRef = useRef<ReturnType<typeof createExplosionManager> | null>(null);
   const playerDataRef = useRef(playerData);
   const collectibleDataRef = useRef(collectibleData);
+  const explosionDataRef = useRef(explosionData);
   playerDataRef.current = playerData;
   collectibleDataRef.current = collectibleData;
+  explosionDataRef.current = explosionData;
 
   useEffect(() => {
     let gameInstance: import("phaser").Game | null = null;
@@ -49,6 +53,9 @@ export function WaterGame({ playerData, collectibleData }: WaterGameProps) {
       
       // Create the collectible manager
       collectibleManagerRef.current = createCollectibleManager();
+      
+      // Create the explosion manager
+      explosionManagerRef.current = createExplosionManager();
       
       // Create a custom scene class dynamically
       class GameScene extends phaser.Scene {
@@ -73,6 +80,11 @@ export function WaterGame({ playerData, collectibleData }: WaterGameProps) {
           // Initial collectible creation
           if (collectibleManagerRef.current && collectibleDataRef.current.length > 0) {
             collectibleManagerRef.current.updateCollectibles(this, collectibleDataRef.current);
+          }
+
+          // Initial explosion creation
+          if (explosionManagerRef.current && explosionDataRef.current.length > 0) {
+            explosionManagerRef.current.updateExplosions(this, explosionDataRef.current);
           }
         }
       }
@@ -107,6 +119,11 @@ export function WaterGame({ playerData, collectibleData }: WaterGameProps) {
         if (sceneRef.current && collectibleManagerRef.current) {
           collectibleManagerRef.current.updateCollectibles(sceneRef.current, collectibleDataRef.current);
         }
+
+        // Update explosions after resize
+        if (sceneRef.current && explosionManagerRef.current) {
+          explosionManagerRef.current.updateExplosions(sceneRef.current, explosionDataRef.current);
+        }
       };
       window.addEventListener('resize', resizeHandler);
     })();
@@ -136,6 +153,13 @@ export function WaterGame({ playerData, collectibleData }: WaterGameProps) {
       collectibleManagerRef.current.updateCollectibles(sceneRef.current, collectibleData);
     }
   }, [collectibleData]);
+
+  // Update explosions when explosion data changes
+  useEffect(() => {
+    if (sceneRef.current && explosionManagerRef.current) {
+      explosionManagerRef.current.updateExplosions(sceneRef.current, explosionData);
+    }
+  }, [explosionData]);
 
   return (
     <div

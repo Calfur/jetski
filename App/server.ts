@@ -72,6 +72,14 @@ type Collectible = {
   rotation: number; // radians
 };
 
+// Explosion type
+type ExplosionData = {
+  id: string;
+  x: number;
+  y: number;
+  timestamp: number;
+};
+
 // WebSocket message types
 type WebSocketMessage = {
   type: 'join' | 'heartbeat' | 'controls' | 'reset';
@@ -110,6 +118,7 @@ type GameStateResponse = {
   type: 'gameState';
   players: PlayerData[];
   collectibles: CollectibleData[];
+  explosions: ExplosionData[];
 };
 
 type ScoreboardResponse = {
@@ -120,7 +129,9 @@ type ScoreboardResponse = {
 // Player management
 const players: Player[] = [];
 const collectibles: Collectible[] = [];
+const explosions: ExplosionData[] = [];
 const highScores: HighScore[] = [];
+const playerConnections = new Map<string, WebSocket>(); // Track connections by player name
 const MAX_COLLECTIBLES = 5;
 const MAX_HIGH_SCORES = 5;
 
@@ -169,7 +180,12 @@ app.prepare().then(() => {
       y: c.y,
       rotation: c.rotation,
     }));
-    const msg: GameStateResponse = { type: 'gameState', players: playerData, collectibles: collectibleData };
+    const msg: GameStateResponse = { 
+      type: 'gameState', 
+      players: playerData, 
+      collectibles: collectibleData,
+      explosions: explosions
+    };
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify(msg));
@@ -264,6 +280,92 @@ app.prepare().then(() => {
 
   function updateActivePlayerScore(playerName: string, score: number): void {
     updateHighScores(playerName, score, true);
+  }
+
+  function checkPlayerCollisions(): void {
+    const collisionDistance = 0.015; // 1.5% of screen size for player collision detection (reduced from 3%)
+    
+    for (let i = 0; i < players.length; i++) {
+      for (let j = i + 1; j < players.length; j++) {
+        const player1 = players[i];
+        const player2 = players[j];
+        
+        const distance = Math.sqrt(
+          Math.pow(player1.x - player2.x, 2) + 
+          Math.pow(player1.y - player2.y, 2)
+        );
+        
+        if (distance < collisionDistance) {
+          // Create explosion at collision point
+          const explosionX = (player1.x + player2.x) / 2;
+          const explosionY = (player1.y + player2.y) / 2;
+          const explosionId = uuidv4();
+          
+          explosions.push({
+            id: explosionId,
+            x: explosionX,
+            y: explosionY,
+            timestamp: Date.now()
+          });
+          
+          // Remove explosion after 2 seconds
+          setTimeout(() => {
+            const index = explosions.findIndex(e => e.id === explosionId);
+            if (index !== -1) {
+              explosions.splice(index, 1);
+              broadcastGameState();
+            }
+          }, 2000);
+          
+          // Update high scores for both players before removing them
+          if (player1.score > 0) {
+            updateHighScores(player1.name, player1.score, false);
+          }
+          if (player2.score > 0) {
+            updateHighScores(player2.name, player2.score, false);
+          }
+          
+          // Send collision notification to both players
+          const collisionData = {
+            player1: player1.name,
+            player2: player2.name,
+            player1Score: player1.score,
+            player2Score: player2.score
+          };
+          
+          const collisionMessage = {
+            type: 'collision',
+            collisionData
+          };
+          
+          // Send to player1
+          const player1Ws = playerConnections.get(player1.name);
+          if (player1Ws && player1Ws.readyState === WebSocket.OPEN) {
+            player1Ws.send(JSON.stringify(collisionMessage));
+          }
+          
+          // Send to player2
+          const player2Ws = playerConnections.get(player2.name);
+          if (player2Ws && player2Ws.readyState === WebSocket.OPEN) {
+            player2Ws.send(JSON.stringify(collisionMessage));
+          }
+          
+          // Remove both players from the game
+          players.splice(j, 1); // Remove player2 first (higher index)
+          players.splice(i, 1); // Then remove player1
+          
+          // Remove from connections map
+          playerConnections.delete(player1.name);
+          playerConnections.delete(player2.name);
+          
+          console.log(`Players ${player1.name} and ${player2.name} collided and exploded!`);
+          
+          broadcastGameState();
+          broadcastScoreboard();
+          return; // Exit the function since we modified the array
+        }
+      }
+    }
   }
 
   function checkCollectibleCollisions(): void {
@@ -364,6 +466,9 @@ app.prepare().then(() => {
     // Check for collectible collisions
     checkCollectibleCollisions();
     
+    // Check for player collisions
+    checkPlayerCollisions();
+    
     broadcastGameState();
   }
 
@@ -371,6 +476,7 @@ app.prepare().then(() => {
   wss.on('connection', (ws: WebSocket) => {
     console.log('WebSocket client connected');
     let playerId: string | null = null;
+    let playerName: string | null = null;
 
     ws.on('message', (data: Buffer | string) => {
       try {
@@ -390,6 +496,7 @@ app.prepare().then(() => {
             return;
           }
           playerId = uuidv4();
+          playerName = name;
           const position = generateRandomPosition();
           const newPlayer = { 
             id: playerId, 
@@ -406,6 +513,9 @@ app.prepare().then(() => {
             controls: { left: false, right: false },
           };
           players.push(newPlayer);
+          
+          // Track the connection by player name
+          playerConnections.set(name, ws);
           
           // Don't add player to high scores until they have at least 1 point
           // updateActivePlayerScore(name, 0);
@@ -466,6 +576,12 @@ app.prepare().then(() => {
             updateHighScores(player.name, player.score, false);
           }
           players.splice(idx, 1);
+          
+          // Remove from connections map
+          if (playerName) {
+            playerConnections.delete(playerName);
+          }
+          
           console.log(`Player left: ${player.name}`);
           broadcastPlayerList();
           broadcastGameState();
@@ -502,7 +618,8 @@ app.prepare().then(() => {
         x: c.x,
         y: c.y,
         rotation: c.rotation,
-      }))
+      })),
+      explosions: explosions
     };
     ws.send(JSON.stringify(initialGameState));
     
