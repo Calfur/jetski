@@ -67,7 +67,7 @@
 - [x] Add player jetski model (colored rectangle with name tag)
 - [x] Implement basic player movement (left/right controls)
 - [x] Create collectible items (random spawn, limited amount (5), spawn 1 per s, rubberduck.svg)
-- [ ] Implement collision detection for collectibles
+- [x] Implement collision detection for collectibles
 - [ ] Add score tracking and display scoreboard
 - [x] Implement jetski physics (drifting, momentum)
 - [ ] Add Online logo obstacle
