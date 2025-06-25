@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { WebSocketMessage, PlayerData } from "../types";
+import { WebSocketMessage, PlayerData, CollectibleData } from "../types";
 
 export function useWebSocket() {
   const [players, setPlayers] = useState<string[]>([]);
   const [playerData, setPlayerData] = useState<PlayerData[]>([]);
+  const [collectibleData, setCollectibleData] = useState<CollectibleData[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -26,6 +27,9 @@ export function useWebSocket() {
           setPlayers(message.players as string[]);
         } else if (message.type === 'gameState' && message.players) {
           setPlayerData(message.players as PlayerData[]);
+          if (message.collectibles) {
+            setCollectibleData(message.collectibles);
+          }
         }
       } catch {
         console.error('Invalid message from server');
@@ -49,6 +53,7 @@ export function useWebSocket() {
   return {
     players,
     playerData,
+    collectibleData,
     isConnected,
     wsRef
   };

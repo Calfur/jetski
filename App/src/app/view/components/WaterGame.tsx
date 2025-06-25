@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useRef } from "react";
-import { PlayerData } from "../types";
-import { createJetskiManager } from "../game/GameScene";
+import { PlayerData, CollectibleData } from "../types";
+import { createJetskiManager, createCollectibleManager } from "../game/GameScene";
 
 interface WaterGameProps {
   playerData: PlayerData[];
+  collectibleData: CollectibleData[];
 }
 
 // Calculate the largest 16:9 size that fits in the viewport
@@ -21,13 +22,16 @@ function getMax16by9Size() {
   return { width, height };
 }
 
-export function WaterGame({ playerData }: WaterGameProps) {
+export function WaterGame({ playerData, collectibleData }: WaterGameProps) {
   const gameRef = useRef<HTMLDivElement>(null);
   const phaserGameRef = useRef<import("phaser").Game | null>(null);
   const sceneRef = useRef<import("phaser").Scene | null>(null);
   const jetskiManagerRef = useRef<ReturnType<typeof createJetskiManager> | null>(null);
+  const collectibleManagerRef = useRef<ReturnType<typeof createCollectibleManager> | null>(null);
   const playerDataRef = useRef(playerData);
+  const collectibleDataRef = useRef(collectibleData);
   playerDataRef.current = playerData;
+  collectibleDataRef.current = collectibleData;
 
   useEffect(() => {
     let gameInstance: import("phaser").Game | null = null;
@@ -43,6 +47,9 @@ export function WaterGame({ playerData }: WaterGameProps) {
       // Create the jetski manager
       jetskiManagerRef.current = createJetskiManager();
       
+      // Create the collectible manager
+      collectibleManagerRef.current = createCollectibleManager();
+      
       // Create a custom scene class dynamically
       class GameScene extends phaser.Scene {
         constructor() {
@@ -51,6 +58,7 @@ export function WaterGame({ playerData }: WaterGameProps) {
         
         preload() {
           this.load.svg('jetski', 'assets/jetski.svg');
+          this.load.svg('rubberduck', 'assets/rubberduck.svg');
         }
 
         create() {
@@ -60,6 +68,11 @@ export function WaterGame({ playerData }: WaterGameProps) {
           // Initial jetski creation
           if (jetskiManagerRef.current && playerDataRef.current.length > 0) {
             jetskiManagerRef.current.updateJetskis(this, playerDataRef.current);
+          }
+
+          // Initial collectible creation
+          if (collectibleManagerRef.current && collectibleDataRef.current.length > 0) {
+            collectibleManagerRef.current.updateCollectibles(this, collectibleDataRef.current);
           }
         }
       }
@@ -89,6 +102,11 @@ export function WaterGame({ playerData }: WaterGameProps) {
         if (sceneRef.current && jetskiManagerRef.current) {
           jetskiManagerRef.current.updateJetskis(sceneRef.current, playerDataRef.current);
         }
+
+        // Update collectibles after resize
+        if (sceneRef.current && collectibleManagerRef.current) {
+          collectibleManagerRef.current.updateCollectibles(sceneRef.current, collectibleDataRef.current);
+        }
       };
       window.addEventListener('resize', resizeHandler);
     })();
@@ -111,6 +129,13 @@ export function WaterGame({ playerData }: WaterGameProps) {
       jetskiManagerRef.current.updateJetskis(sceneRef.current, playerData);
     }
   }, [playerData]);
+
+  // Update collectibles when collectible data changes
+  useEffect(() => {
+    if (sceneRef.current && collectibleManagerRef.current) {
+      collectibleManagerRef.current.updateCollectibles(sceneRef.current, collectibleData);
+    }
+  }, [collectibleData]);
 
   return (
     <div

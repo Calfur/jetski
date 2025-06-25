@@ -54,6 +54,14 @@ type Player = {
   };
 };
 
+// Collectible type
+type Collectible = {
+  id: string;
+  x: number; // position (0 to 1)
+  y: number; // position (0 to 1)
+  rotation: number; // radians
+};
+
 // WebSocket message types
 type WebSocketMessage = {
   type: 'join' | 'heartbeat' | 'controls';
@@ -80,13 +88,23 @@ type PlayerData = {
   speed: number;
 };
 
+type CollectibleData = {
+  id: string;
+  x: number;
+  y: number;
+  rotation: number;
+};
+
 type GameStateResponse = {
   type: 'gameState';
   players: PlayerData[];
+  collectibles: CollectibleData[];
 };
 
 // Player management
 const players: Player[] = [];
+const collectibles: Collectible[] = [];
+const MAX_COLLECTIBLES = 5;
 
 app.prepare().then(() => {
   const server = createServer(async (req, res) => {
@@ -126,7 +144,13 @@ app.prepare().then(() => {
       rotation: p.rotation,
       speed: p.speed,
     }));
-    const msg: GameStateResponse = { type: 'gameState', players: playerData };
+    const collectibleData: CollectibleData[] = collectibles.map((c) => ({
+      id: c.id,
+      x: c.x,
+      y: c.y,
+      rotation: c.rotation,
+    }));
+    const msg: GameStateResponse = { type: 'gameState', players: playerData, collectibles: collectibleData };
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(JSON.stringify(msg));
@@ -141,6 +165,45 @@ app.prepare().then(() => {
     const x = margin + Math.random() * (1 - 2 * margin);
     const y = margin + Math.random() * (1 - 2 * margin);
     return { x, y };
+  }
+
+  function spawnCollectible(): void {
+    if (collectibles.length >= MAX_COLLECTIBLES) return;
+    
+    const position = generateRandomPosition();
+    const collectible: Collectible = {
+      id: uuidv4(),
+      x: position.x,
+      y: position.y,
+      rotation: Math.random() * 2 * Math.PI,
+    };
+    collectibles.push(collectible);
+    broadcastGameState();
+  }
+
+  function checkCollectibleCollisions(): void {
+    const collisionDistance = 0.02; // 2% of screen size for collision detection
+    
+    for (let i = players.length - 1; i >= 0; i--) {
+      const player = players[i];
+      
+      for (let j = collectibles.length - 1; j >= 0; j--) {
+        const collectible = collectibles[j];
+        
+        const distance = Math.sqrt(
+          Math.pow(player.x - collectible.x, 2) + 
+          Math.pow(player.y - collectible.y, 2)
+        );
+        
+        if (distance < collisionDistance) {
+          // Player collected the item
+          collectibles.splice(j, 1);
+          console.log(`Player ${player.name} collected item ${collectible.id}`);
+          broadcastGameState();
+          break; // Only collect one item per frame
+        }
+      }
+    }
   }
 
   function removeInactivePlayers(): void {
@@ -202,6 +265,9 @@ app.prepare().then(() => {
       player.x = Math.max(0, Math.min(1, player.x));
       player.y = Math.max(0, Math.min(1, player.y));
     });
+    
+    // Check for collectible collisions
+    checkCollectibleCollisions();
     
     broadcastGameState();
   }
@@ -307,6 +373,12 @@ app.prepare().then(() => {
         color: p.color,
         rotation: p.rotation,
         speed: p.speed,
+      })),
+      collectibles: collectibles.map((c) => ({
+        id: c.id,
+        x: c.x,
+        y: c.y,
+        rotation: c.rotation,
       }))
     };
     ws.send(JSON.stringify(initialGameState));
@@ -317,6 +389,9 @@ app.prepare().then(() => {
 
   // Start game physics loop
   setInterval(updateGamePhysics, 1000 / 60); // 60 FPS
+
+  // Start collectible spawn loop
+  setInterval(spawnCollectible, 1000); // Spawn 1 collectible per second
 
   server.listen(port, () => {
     console.log(`> Ready on http://${hostname}:${port}`);

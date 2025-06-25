@@ -34,7 +34,7 @@ Vibe Code Challenge For All - Online.ch Palermo
 > Spawn jetskis on the water, player movements, physics
 
 > 25.06.2025 21:15 - 
-> 
+> Collectibles, 
 
 ## My rules
 

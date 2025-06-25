@@ -1,4 +1,4 @@
-import { PlayerData, JetskiObject } from "../types";
+import { PlayerData, JetskiObject, CollectibleData, CollectibleObject } from "../types";
 
 // Export the jetski management logic that can be used in the scene
 export function createJetskiManager() {
@@ -30,6 +30,39 @@ export function createJetskiManager() {
         
         // Create new jetski with current dimensions
         createJetski(scene, player, jetskis);
+      }
+    }
+  };
+}
+
+// Export the collectible management logic
+export function createCollectibleManager() {
+  const collectibles = new Map<string, CollectibleObject>();
+  
+  return {
+    updateCollectibles(scene: import("phaser").Scene, collectibleData: CollectibleData[]) {
+      const currentCollectibleIds = new Set(collectibleData.map(c => c.id));
+
+      // Remove collectibles that are no longer present
+      for (const [id, collectible] of collectibles.entries()) {
+        if (!currentCollectibleIds.has(id)) {
+          collectible.image.destroy();
+          collectibles.delete(id);
+        }
+      }
+
+      // Add or update collectibles
+      for (const collectible of collectibleData) {
+        // Always recreate collectibles to ensure proper scaling of all properties
+        if (collectibles.has(collectible.id)) {
+          // Destroy existing collectible before recreating
+          const existingCollectible = collectibles.get(collectible.id)!;
+          existingCollectible.image.destroy();
+          collectibles.delete(collectible.id);
+        }
+        
+        // Create new collectible with current dimensions
+        createCollectible(scene, collectible, collectibles);
       }
     }
   };
@@ -72,4 +105,22 @@ function createJetski(scene: import("phaser").Scene, player: PlayerData, jetskis
   
   // Store references
   jetskis.set(player.id, { image, text });
+}
+
+function createCollectible(scene: import("phaser").Scene, collectible: CollectibleData, collectibles: Map<string, CollectibleObject>) {
+  const { width, height } = scene.scale;
+  const collectibleSize = width / 120; // 1/120th of screen width for collectibles
+  
+  // Convert normalized coordinates (0-1) to screen coordinates
+  const x = collectible.x * width;
+  const y = collectible.y * height;
+  
+  // Create collectible image (rubberduck)
+  const image = scene.add.image(x, y, 'rubberduck');
+  image.setScale(collectibleSize / image.width);
+  image.setRotation(collectible.rotation); // Apply random rotation
+  image.setOrigin(0.5, 0.5); // Center the origin
+  
+  // Store reference
+  collectibles.set(collectible.id, { image });
 } 
