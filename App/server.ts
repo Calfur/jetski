@@ -74,7 +74,7 @@ type Collectible = {
 
 // WebSocket message types
 type WebSocketMessage = {
-  type: 'join' | 'heartbeat' | 'controls';
+  type: 'join' | 'heartbeat' | 'controls' | 'reset';
   name?: string;
   controls?: {
     leftPressed: boolean;
@@ -427,6 +427,23 @@ app.prepare().then(() => {
               p.controls.right = msg.controls.rightPressed;
             }
           }
+        } else if (msg.type === 'reset') {
+          // Reset high scores
+          highScores.splice(0, highScores.length);
+          
+          // Reset all player scores to 0
+          players.forEach(player => {
+            player.score = 0;
+          });
+          
+          // Clear all collectibles
+          collectibles.splice(0, collectibles.length);
+          
+          // Broadcast updated state
+          broadcastScoreboard();
+          broadcastGameState();
+          
+          console.log('Scoreboard and player scores reset by admin');
         }
       } catch (err) {
         console.error('WebSocket message error:', err);
