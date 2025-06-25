@@ -70,7 +70,7 @@ export function createCollectibleManager() {
 
 function createJetski(scene: import("phaser").Scene, player: PlayerData, jetskis: Map<string, JetskiObject>) {
   const { width, height } = scene.scale;
-  const jetskiWidth = width / 90; // Reduced from 1/60th of screen width
+  const jetskiWidth = width / 120;
   const jetskiHeight = jetskiWidth * 0.6; // Aspect ratio for jetski
   
   // Convert normalized coordinates (0-1) to screen coordinates
@@ -88,7 +88,7 @@ function createJetski(scene: import("phaser").Scene, player: PlayerData, jetskis
   image.setOrigin(0.5, 0.5); // Center the origin
   
   // Calculate dynamic font size based on view size
-  const fontSize = Math.max(12, Math.min(24, width / 80)); // Scale between 12px and 24px based on screen width
+  const fontSize = Math.max(8, Math.min(20, width / 80)); // Scale between 12px and 24px based on screen width
   
   // Use font size for spacing between text and jetski
   const textSpacing = fontSize * 1.5;
@@ -109,7 +109,7 @@ function createJetski(scene: import("phaser").Scene, player: PlayerData, jetskis
 
 function createCollectible(scene: import("phaser").Scene, collectible: CollectibleData, collectibles: Map<string, CollectibleObject>) {
   const { width, height } = scene.scale;
-  const collectibleSize = width / 120; // 1/120th of screen width for collectibles
+  const collectibleSize = width / 150; // 1/120th of screen width for collectibles
   
   // Convert normalized coordinates (0-1) to screen coordinates
   const x = collectible.x * width;

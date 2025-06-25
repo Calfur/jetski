@@ -25,11 +25,11 @@ const JETSKI_COLORS = [
 // Physics constants
 const PHYSICS = {
   maxSpeed: 0.1, // a full screen width in 10 seconds
-  acceleration: 0.5, // reaches max speed in 2 seconds
+  acceleration: 0.1, // reaches max speed in 2 seconds
   deceleration: 0.06, // constant deceleration
-  dragFactor: 0.2, // slows down faster at high speed
-  maxTurnSpeed: Math.PI / 3, // 60 deg/s
-  driftFactor: 0.1, // Lower means more drift
+  dragFactor: 0.4, // slows down faster at high speed
+  maxTurnSpeed: Math.PI / 2.5,
+  driftFactor: 0.05, // Lower means more drift
   aspectRatio: 16 / 9, // 16:9 aspect ratio for coordinate scaling
 } as const;
 
