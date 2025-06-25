@@ -73,8 +73,8 @@
 - [x] Implement player-player collision detection
 - [x] Add explosion effects on collisions (big red and orange circles)
 - [x] Add game over screen on controller with collision info and "Join Again" button
-- [ ] Add Online logo obstacle
+- [x] Add death handling (respawn, score reset)
+- [ ] Add Online logo/Islands with Palermo obstacles
 - [ ] Implement player spawn system (random position outside obstacles)
-- [ ] Add death handling (respawn, score reset)
 - [ ] Polish game view (water effects, jetskis, UX)
 - [ ] Add game instructions/help
