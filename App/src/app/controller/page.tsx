@@ -27,11 +27,13 @@ export default function GameController() {
   const [playerData, setPlayerData] = useState<PlayerData | null>(null);
   const [leftPressed, setLeftPressed] = useState(false);
   const [rightPressed, setRightPressed] = useState(false);
+  const [showRetry, setShowRetry] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const controlIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Effect for WebSocket connection - runs once
-  useEffect(() => {
+  // Function to establish WebSocket connection
+  const connectWebSocket = useCallback(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
     const wsUrl = `${protocol}//${host}/ws`;
@@ -61,11 +63,40 @@ export default function GameController() {
       setIsConnected(false);
       setIsJoined(false);
     };
+  }, []);
+
+  // Function to retry connection
+  const handleRetry = useCallback(() => {
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
+    setIsConnected(false);
+    setIsJoined(false);
+    setError('');
+    setLastMessage(null);
+    setPlayerData(null);
+    setShowRetry(false);
+    connectWebSocket();
+  }, [connectWebSocket]);
+
+  // Effect for WebSocket connection - runs once
+  useEffect(() => {
+    connectWebSocket();
+
+    // Set up timeout to show retry button after 3 seconds
+    retryTimeoutRef.current = setTimeout(() => {
+      setShowRetry(true);
+    }, 3000);
 
     return () => {
-      ws.close();
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
     };
-  }, []);
+  }, [connectWebSocket]);
 
   // Effect for handling incoming messages
   useEffect(() => {
@@ -175,6 +206,14 @@ export default function GameController() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p className="text-white">Connecting to server...</p>
+          {showRetry && (
+            <button
+              onClick={handleRetry}
+              className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded"
+            >
+              Retry
+            </button>
+          )}
         </div>
       </div>
     );
@@ -198,7 +237,7 @@ export default function GameController() {
         <div className="flex-1 flex">
           {/* Left button */}
           <button
-            className={`flex-1 flex items-center justify-center text-white text-2xl font-bold transition-all duration-100 ${
+            className={`flex-1 flex items-center justify-center text-white text-2xl font-bold transition-all duration-100 select-none ${
               leftPressed ? 'bg-opacity-80' : 'bg-opacity-60'
             }`}
             style={{ 
@@ -216,7 +255,7 @@ export default function GameController() {
 
           {/* Right button */}
           <button
-            className={`flex-1 flex items-center justify-center text-white text-2xl font-bold transition-all duration-100 ${
+            className={`flex-1 flex items-center justify-center text-white text-2xl font-bold transition-all duration-100 select-none ${
               rightPressed ? 'bg-opacity-80' : 'bg-opacity-60'
             }`}
             style={{ 

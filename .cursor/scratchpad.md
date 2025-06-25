@@ -66,7 +66,7 @@
 - [x] Multiplayer ability, joining with devices as game controllers adds player names to game view
 - [x] Add player jetski model (colored rectangle with name tag)
 - [x] Implement basic player movement (left/right controls)
-- [ ] Create collectible items (random spawn, limited amount)
+- [ ] Create collectible items (random spawn, limited amount (5), spawn 1 per s, rubberduck.svg)
 - [ ] Implement collision detection for collectibles
 - [ ] Add score tracking and display scoreboard
 - [x] Implement jetski physics (drifting, momentum)
