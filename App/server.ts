@@ -237,18 +237,20 @@ app.prepare().then(() => {
       return;
     }
     
-    // Find existing entry for this player
-    const existingIndex = highScores.findIndex(hs => hs.name.toLowerCase() === playerName.toLowerCase());
+    // Find existing ACTIVE entry for this player (only update active entries)
+    const existingActiveIndex = highScores.findIndex(hs => 
+      hs.name.toLowerCase() === playerName.toLowerCase() && hs.isActive
+    );
     
-    if (existingIndex !== -1) {
-      // Update existing entry
-      highScores[existingIndex].score = score;
-      highScores[existingIndex].isActive = isActive;
+    if (existingActiveIndex !== -1) {
+      // Update existing active entry
+      highScores[existingActiveIndex].score = score;
       if (!isActive) {
-        highScores[existingIndex].timestamp = Date.now();
+        highScores[existingActiveIndex].isActive = false;
+        highScores[existingActiveIndex].timestamp = Date.now();
       }
     } else {
-      // Add new score entry
+      // Add new score entry (either active or inactive)
       const newScore: HighScore = {
         name: playerName,
         score: score,
