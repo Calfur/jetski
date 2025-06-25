@@ -68,7 +68,7 @@
 - [x] Implement basic player movement (left/right controls)
 - [x] Create collectible items (random spawn, limited amount (5), spawn 1 per s, rubberduck.svg)
 - [x] Implement collision detection for collectibles
-- [ ] Add score tracking and display scoreboard
+- [x] Add score tracking and display scoreboard
 - [x] Implement jetski physics (drifting, momentum)
 - [ ] Add Online logo obstacle
 - [ ] Implement player-player collision detection

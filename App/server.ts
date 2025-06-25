@@ -327,10 +327,10 @@ app.prepare().then(() => {
       const { controls } = player;
       
       // 1. Handle rotational acceleration
-      if (controls.left && !controls.right) { // Accelerate turning right
-        player.rotation += PHYSICS.maxTurnSpeed * deltaTime;
-      } else if (controls.right && !controls.left) { // Accelerate turning left
+      if (controls.left && !controls.right) { // Accelerate turning left
         player.rotation -= PHYSICS.maxTurnSpeed * deltaTime;
+      } else if (controls.right && !controls.left) { // Accelerate turning right
+        player.rotation += PHYSICS.maxTurnSpeed * deltaTime;
       }
 
       // 2. Handle linear acceleration/deceleration

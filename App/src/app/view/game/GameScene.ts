@@ -91,7 +91,7 @@ function createJetski(scene: import("phaser").Scene, player: PlayerData, jetskis
   const fontSize = Math.max(12, Math.min(24, width / 80)); // Scale between 12px and 24px based on screen width
   
   // Use font size for spacing between text and jetski
-  const textSpacing = fontSize * 2;
+  const textSpacing = fontSize * 1.5;
   
   // Create name tag above jetski
   const text = scene.add.text(x, y - jetskiHeight/2 - textSpacing, player.name, {
