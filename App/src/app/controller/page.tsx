@@ -276,10 +276,14 @@ export default function GameController() {
     
     // Rejoin with the same name
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'join',
-        name: playerName.trim()
-      }));
+      const trimmedName = playerName.trim();
+      setPlayerName(trimmedName);
+      wsRef.current.send(
+        JSON.stringify({
+          type: 'join',
+          name: trimmedName
+        })
+      );
     }
   };
 
