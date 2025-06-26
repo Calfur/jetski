@@ -484,28 +484,31 @@ app.prepare().then(() => {
       try {
         const msg: WebSocketMessage = JSON.parse(data.toString());
         if (msg.type === 'join') {
-          const { name } = msg;
+          const rawName = msg.name;
+          const trimmedName =
+            typeof rawName === 'string' ? rawName.trim() : '';
           if (
-            typeof name !== 'string' ||
-            !name.trim() ||
-            players.some((p) => p.name.toLowerCase() === name.toLowerCase())
+            !trimmedName ||
+            players.some(
+              (p) => p.name.toLowerCase() === trimmedName.toLowerCase()
+            )
           ) {
-            const errorResponse: WebSocketResponse = { 
-              type: 'error', 
-              error: 'Name taken or invalid' 
+            const errorResponse: WebSocketResponse = {
+              type: 'error',
+              error: 'Name taken or invalid'
             };
             ws.send(JSON.stringify(errorResponse));
             return;
           }
           playerId = uuidv4();
-          playerName = name;
+          playerName = trimmedName;
           const position = generateRandomPosition();
-          const newPlayer = { 
-            id: playerId, 
-            name, 
-            lastActive: Date.now(), 
-            x: position.x, 
-            y: position.y, 
+          const newPlayer = {
+            id: playerId,
+            name: trimmedName,
+            lastActive: Date.now(),
+            x: position.x,
+            y: position.y,
             color: JETSKI_COLORS[Math.floor(Math.random() * JETSKI_COLORS.length)],
             rotation: Math.random() * 2 * Math.PI,
             speed: 0,
@@ -515,14 +518,14 @@ app.prepare().then(() => {
             controls: { left: false, right: false },
           };
           players.push(newPlayer);
-          
+
           // Track the connection by player name
-          playerConnections.set(name, ws);
+          playerConnections.set(trimmedName, ws);
           
           // Don't add player to high scores until they have at least 1 point
           // updateActivePlayerScore(name, 0);
           
-          console.log(`Player joined: ${name}`);
+          console.log(`Player joined: ${trimmedName}`);
           broadcastPlayerList();
           broadcastGameState();
         } else if (msg.type === 'heartbeat') {
