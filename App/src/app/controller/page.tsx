@@ -127,14 +127,21 @@ export default function GameController() {
       return;
     }
 
+    const trimmedName = playerName.trim();
+
     if (lastMessage.type === 'error') {
       setError(lastMessage.error || 'Unknown error');
       setIsLoading(false);
     } else if (lastMessage.type === 'playerList') {
       console.log('Current players:', lastMessage.players);
       // Check if current player name is in the player list to confirm successful join
-      if (lastMessage.players && Array.isArray(lastMessage.players) && 
-          lastMessage.players.some(p => typeof p === 'string' && p === playerName)) {
+      if (
+        lastMessage.players &&
+        Array.isArray(lastMessage.players) &&
+        lastMessage.players.some(
+          (p) => typeof p === 'string' && p === trimmedName
+        )
+      ) {
         setIsJoined(true);
         setIsGameOver(false);
         setIsLoading(false);
@@ -144,9 +151,18 @@ export default function GameController() {
     } else if (lastMessage.type === 'gameState') {
       // Find current player in game state
       if (lastMessage.players && Array.isArray(lastMessage.players)) {
-        const currentPlayer = lastMessage.players.find(p => typeof p === 'object' && p.name === playerName);
+        const currentPlayer = lastMessage.players.find(
+          (p) => typeof p === 'object' && p.name === trimmedName
+        );
         if (currentPlayer && typeof currentPlayer === 'object') {
           setPlayerData(currentPlayer as PlayerData);
+          if (!isJoined) {
+            setIsJoined(true);
+            setIsGameOver(false);
+            setIsLoading(false);
+            setError('');
+            setCollisionData(null);
+          }
         } else {
           // Player not found in game state - they might have died
           if (isJoined && !isGameOver) {
@@ -189,11 +205,15 @@ export default function GameController() {
 
     setIsLoading(true);
     setError('');
-    
-    wsRef.current.send(JSON.stringify({
-      type: 'join',
-      name: playerName.trim()
-    }));
+    const trimmedName = playerName.trim();
+    setPlayerName(trimmedName);
+
+    wsRef.current.send(
+      JSON.stringify({
+        type: 'join',
+        name: trimmedName,
+      })
+    );
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
