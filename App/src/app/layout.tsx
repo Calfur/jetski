@@ -14,6 +14,9 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Jetski",
+  alternates: {
+    canonical: "https://jetski.calfur.dev/",
+  },
 };
 
 export default function RootLayout({
