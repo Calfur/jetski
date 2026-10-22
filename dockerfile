@@ -1,4 +1,4 @@
-FROM node:24-alpine AS base
+FROM node:24.22.1-alpine AS base
 # Deps stage
 FROM base AS deps
 
@@ -45,7 +45,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/dist/server.js ./server.js
 
 # Install only the production dependencies our custom server needs
 COPY --from=builder /app/package.json ./
-RUN npm install --production --ignore-scripts ws uuid
+COPY --from=builder /app/package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts
 
 USER nextjs
 
